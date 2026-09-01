@@ -1,0 +1,2 @@
+nohup ~/github-snippets/clip_sync_daemon.sh > /dev/null 2>&1 &
+echo "[✓] Background sync daemon is running. Every copy or paste event will now push automatically to GitHub."
