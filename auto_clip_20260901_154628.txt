@@ -1,0 +1,2 @@
+nohup ~/github-snippets/clip_sync_daemon.sh > /dev/null 2>&1 &
+echo "[✓] Background clipboard sync daemon active. Every clipboard entry is now automatically captured and pushed to GitHub."
