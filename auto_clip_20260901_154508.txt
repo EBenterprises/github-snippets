@@ -1,0 +1,5 @@
+git init
+git add .
+git commit -m "Initial commit: PulseMatch full-stack dating application"
+git branch -M main
+gh repo create pulse-match --public --source=. --remote=origin --push
