@@ -1,0 +1,96 @@
+========================================
+          🌐 THE PLUG ACCESS
+========================================
+ 1. Local:   http://localhost:3001
+ 2. Public:  https://festivals-sql-command-mats.trycloudflare.com
+ 3. Onion:   http://pkmfbcuw7i6gnp2eaezbllibnusjnkokelb3qzpaxyrok4ksqrdrr6yd.onion
+========================================
+~ $ cd ~/github-snippets && git pull origin main
+bash: cd: /data/data/com.termux/files/home/github-snippets: No such file or directory
+~ $ git clone https://github.com/EBenterprises/github-snippets.git ~/github-snippets
+mkdir -p ~/.local/bin ~/.ssh
+ln -sf ~/github-snippets/gpaste ~/.local/bin/gpaste
+chmod +x ~/github-snippets/gpaste ~/github-snippets/clip_sync_daemon.sh
+echo 'export PATH="${HOME}/.local/bin:${PATH}"' >> ~/.bash_profile
+source ~/.bash_profile
+nohup ~/github-snippets/clip_sync_daemon.sh > /dev/null 2>&1 &
+Cloning into '/data/data/com.termux/files/home/github-snippets'...
+remote: Enumerating objects: 28, done.
+remote: Counting objects: 100% (28/28), done
+remote: Compressing objects: 100% (21/21), done.
+remote: Total 28 (delta 9), reused 20 (delta 1), pack-reused 0 (from 0)
+Receiving objects: 100% (28/28), 6.81 KiB | 6.81 MiB/s, done.
+Resolving deltas: 100% (9/9), done.
+[1] 24473
+~ $ echo "Sync test from second device" | gpaste
+[main b8780ec] Auto-pasted code: snippet_20260901_134935.txt
+ 1 file changed, 1 insertion(+)
+ create mode 100644 snippet_20260901_134935.txt
+Username for 'https://github.com': ebenterprises
+Password for 'https://ebenterprises@github.com':
+remote: Invalid username or token. Password authentication is not supported for Git operations.
+fatal: Authentication failed for 'https://github.com/EBenterprises/github-snippets.git/'
+~ $ git remote set-url origin git@github.com:EBenterprises/github-snippets.git
+error: No such remote 'origin'
+~ $ it -C ~/github-snippets remote add origin git@github.com:EBenterprises/github-snippets.git
+No command it found, did you mean:
+ Command at in package at
+ Command id in package coreutils
+ Command et in package et
+ Command git in package git
+ Command i3 in package i3 from the x11-repo repository
+ Command iat in package iat
+ Command ip in package iproute2
+ Command iw in package iw from the root-repo repository
+ Command lit in package lit
+ Command iv in package openimageio from the x11-repo repository
+ Command st in package st from the x11-repo repository
+ Command pt in package tcllib
+ Command ht in package texlive-bin
+ Command vt in package virustotal-cli
+~ $ cd ~/github-snippets && git remote add origin git@github.com:EBenterprises/github-snippets.git && git push -u origin main
+error: remote origin already exists.
+~/github-snippets $ git remote set-url origin git@github.com:EBenterprises/github-snippets.git
+~/github-snippets $ git push -u origin main
+The authenticity of host 'github.com (140.82.113.3)' can't be established.
+ED25519 key fingerprint is: SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'github.com' (ED25519) to the list of known hosts.
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+~/github-snippets $ ssh-keygen -t ed25519 -C "your_email@example.com"
+Generating public/private ed25519 key pair.
+Enter file in which to save the key (/data/data/com.termux/files/home/.ssh/id_ed25519):
+Enter passphrase for "/data/data/com.termux/files/home/.ssh/id_ed25519" (empty for no passphrase):
+Enter same passphrase again:
+Your identification has been saved in /data/data/com.termux/files/home/.ssh/id_ed25519
+Your public key has been saved in /data/data/com.termux/files/home/.ssh/id_ed25519.pub
+The key fingerprint is:
+SHA256:h5NIgBuv8nKJbI+R0b7sC2SycET6WcnPvoH4x0GdGk8 your_email@example.com
+The key's randomart image is:
++--[ED25519 256]--+
+|  ...            |
+| oo. o           |
+|. .++ .. .       |
+| ooo.+o.Eo       |
+|o++o .+=S .      |
+|*o=. oo .o       |
+|oB.o..o.         |
+|ooO.. oo         |
+|.+o*o..          |
++----[SHA256]-----+
+~/github-snippets $ cat ~/.ssh/id_ed25519.pubssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJrrouI8rmQh2aVgSvQ4Cdo+smmLl8hxIcAWIlZHRLIT your_email@example.com
+~/github-snippets $ ssh -T git@github.com
+git@github.com: Permission denied (publickey).
+~/github-snippets $ git push -u origin main
+git@github.com: Permission denied (publickey).
+fatal: Could not read from remote repository.
+
+Please make sure you have the correct access rights
+and the repository exists.
+~/github-snippets $ cd
+~ $
