@@ -1,0 +1,13 @@
+cat << 'EOF' >> ~/.bashrc
+
+# --- Automated Clipboard Sync & Terminal Integration ---
+export PATH="${HOME}/.local/bin:${PATH}"
+
+# Ensure the background clipboard sync daemon runs on shell startup if not already active
+if ! pgrep -f "clip_sync_daemon.sh" > /dev/null; then
+    nohup "${HOME}/github-snippets/clip_sync_daemon.sh" > /dev/null 2>&1 &
+fi
+EOF
+
+source ~/.bashrc
+echo "[✓] Configuration anchored globally. All current and future terminal sessions will automatically initialize the PATH and background sync daemon."
