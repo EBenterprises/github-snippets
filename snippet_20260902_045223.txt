@@ -1,0 +1,14 @@
+cat << 'EOF' >> ~/.bashrc
+
+# ==============================================================================
+# Executive Spectrum - Global CLI Shortcut
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+export PATH="$HOME/termux_workspace:$PATH"
+alias execspec="${HOME}/termux_workspace/exec-spec"
+EOF
+
+source ~/.bashrc
+git add workspace_verify.py ~/.bashrc 2>/dev/null || git add workspace_verify.py
+git commit -m "feat: add comprehensive system verification suite and global shell path alias"
+git push origin main
