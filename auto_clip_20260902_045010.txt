@@ -1,0 +1,4 @@
+./new_module.sh core_engine
+git add new_module.sh core_engine/
+git commit -m "feat: add module scaffolding tool and scaffold core_engine"
+git push origin main
