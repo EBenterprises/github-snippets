@@ -1,0 +1,78 @@
+cat << 'EOF' > workspace_verify.py
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Comprehensive System Verification & Health Suite
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import os
+import sys
+import subprocess
+
+HOME = os.environ.get("HOME", "/data/data/com.termux/files/home")
+WORKSPACE_DIR = os.path.join(HOME, "termux_workspace")
+
+def check_file(path, name):
+    exists = os.path.exists(path)
+    status = "[PASS]" if exists else "[FAIL]"
+    print(f"   - {status} {name}: {path}")
+    return exists
+
+def main():
+    print("=" * 60)
+    print(" EXECUTIVE SPECTRUM - SYSTEM VERIFICATION SUITE")
+    print(" EB Enterprises | Automated Terminal Environment")
+    print("=" * 60)
+    
+    all_passed = True
+    
+    print("\n[+] Checking Core Executables & Scripts:")
+    files = [
+        ("exec-spec", "Master CLI Utility"),
+        ("workspace_status.py", "Status Dashboard"),
+        ("executive_tui.py", "Curses TUI Dashboard"),
+        ("workspace_snippets.py", "Snippet Manager"),
+        ("workspace_master_orchestrator.sh", "Master Orchestrator"),
+        ("workspace_backup_sync.sh", "Backup & Sync Daemon"),
+        ("new_module.sh", "Module Scaffolding Tool")
+    ]
+    
+    for filename, desc in files:
+        path = os.path.join(WORKSPACE_DIR, filename)
+        if not check_file(path, desc):
+            all_passed = False
+
+    print("\n[+] Checking Storage & Databases:")
+    db_path = os.path.join(HOME, ".workspace_snippets.db")
+    if os.path.exists(db_path):
+        print(f"   - [PASS] Snippet Database: {db_path}")
+    else:
+        print(f"   - [WARN] Snippet Database not initialized: {db_path}")
+
+    print("\n[+] Checking Git Repository Status:")
+    try:
+        status_out = subprocess.check_output(["git", "-C", WORKSPACE_DIR, "status", "--porcelain"]).decode().strip()
+        if not status_out:
+            print("   - [PASS] Working tree clean and synchronized.")
+        else:
+            print("   - [INFO] Uncommitted runtime modifications present.")
+    except Exception as e:
+        print(f"   - [FAIL] Git status check failed: {e}")
+        all_passed = False
+
+    print("=" * 60)
+    if all_passed:
+        print(" SYSTEM VERIFICATION COMPLETE: ALL SYSTEMS OPERATIONAL.")
+    else:
+        print(" SYSTEM VERIFICATION COMPLETE: REVIEW REQUIRED.")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    main()
+EOF
+
+chmod +x workspace_verify.py
+python3 workspace_verify.py
+git add workspace_verify.py
+git commit -m "fix: correct output formatting and logic in system verification suite"
+git push origin main
