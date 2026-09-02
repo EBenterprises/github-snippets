@@ -1,0 +1,16 @@
+cat << 'EOF' >> ~/.bashrc
+
+# ==============================================================================
+# Executive Spectrum - Terminal Auto-Initialization Anchor
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+if [[ -f "${HOME}/workspace_master_orchestrator.sh" ]]; then
+    # Run orchestration check silently on shell startup
+    bash "${HOME}/workspace_master_orchestrator.sh" start >/dev/null 2>&1
+fi
+EOF
+
+source ~/.bashrc
+git add ~/.bashrc
+git commit -m "feat: anchor executive spectrum orchestrator into bashrc auto-init"
+git push origin main
