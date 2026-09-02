@@ -1,0 +1,115 @@
+cat << 'EOF' > executive_tui.py
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Advanced Terminal User Interface (TUI) Dashboard
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import os
+import sys
+import time
+import json
+import subprocess
+import curses
+
+HOME = os.environ.get("HOME", "/data/data/com.termux/files/home")
+LOG_FILE = os.path.join(HOME, ".workspace_daemon.log")
+TELEMETRY_LOG = os.path.join(HOME, ".workspace_telemetry.jsonl")
+
+def get_processes():
+    daemons = ["workspace_daemon.py", "web_ui_dashboard.py", "workspace_health_monitor.py", "clip_daemon.sh"]
+    status = {}
+    for d in daemons:
+        try:
+            out = subprocess.check_output(["pgrep", "-f", d]).decode().strip()
+            status[d] = "RUNNING" if out else "STOPPED"
+        except Exception:
+            status[d] = "STOPPED"
+    return status
+
+def draw_dashboard(stdscr):
+    curses.curs_set(0)
+    stdscr.nodelay(True)
+    stdscr.timeout(1000)
+
+    # Initialize colors if supported
+    if curses.has_colors():
+        curses.start_color()
+        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+
+    while True:
+        stdscr.clear()
+        h, w = stdscr.getmaxyx()
+
+        # Header
+        title = " EXECUTIVE SPECTRUM - ADVANCED TUI DASHBOARD "
+        try:
+            stdscr.attron(curses.A_BOLD | curses.A_REVERSE)
+            stdscr.addstr(0, 0, title.ljust(w))
+            stdscr.attroff(curses.A_BOLD | curses.A_REVERSE)
+        except curses.error:
+            pass
+
+        # Process Status Section
+        try:
+            stdscr.addstr(2, 2, "ACTIVE BACKGROUND PROCESSES:", curses.A_BOLD)
+            procs = get_processes()
+            row = 3
+            for proc, state in procs.items():
+                if row < h - 10:
+                    stdscr.addstr(row, 4, f"- {proc}: ")
+                    pair = curses.color_pair(1) if state == "RUNNING" else curses.color_pair(2)
+                    stdscr.addstr(state, pair | curses.A_BOLD)
+                    row += 1
+        except curses.error:
+            pass
+
+        # Recent Logs Section
+        try:
+            stdscr.addstr(row + 1, 2, "RECENT SYSTEM LOGS:", curses.A_BOLD)
+            row += 2
+            if os.path.exists(LOG_FILE):
+                with open(LOG_FILE, "r") as f:
+                    lines = f.readlines()[-5:]
+                    for line in lines:
+                        if row < h - 2:
+                            stdscr.addstr(row, 4, line.strip()[:w-6])
+                            row += 1
+        except Exception:
+            pass
+
+        # Footer instructions
+        try:
+            footer = " Press 'q' to exit | Press 'r' to refresh "
+            stdscr.attron(curses.A_DIM)
+            stdscr.addstr(h - 1, 0, footer.ljust(w))
+            stdscr.attroff(curses.A_DIM)
+        except curses.error:
+            pass
+
+        stdscr.refresh()
+
+        try:
+            key = stdscr.getch()
+            if key == ord('q'):
+                break
+            elif key == ord('r'):
+                continue
+        except Exception:
+            pass
+
+def main():
+    try:
+        curses.wrapper(draw_dashboard)
+    except Exception as e:
+        print(f"TUI Error: {e}")
+
+if __name__ == "__main__":
+    main()
+EOF
+
+chmod +x executive_tui.py
+git add executive_tui.py
+git commit -m "feat: implement advanced curses-based terminal user interface dashboard"
+git push origin main
