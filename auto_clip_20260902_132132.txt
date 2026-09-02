@@ -1,0 +1,100 @@
+=======")
+>     print(" EXECUTIVE SPECTRUM - MASTER CLI UTILITY")
+>     print(" EB Enterprises | Automated Terminal Environment")
+>     print("=============================================================")
+>     print(" Usage: ./exec-spec <command> [args]")                >     print("")
+>     print(" Commands:")
+>     print("   status       - Run the terminal status dashboard")
+>     print("   tui          - Launch the advanced curses TUI dashboard")
+>     print("   snippets     - Manage terminal snippets (list|add|get)")
+>     print("   vault        - Manage secure credentials (list|set|get)")
+>     print("   orchestrate  - Control workspace daemons (start|stop|restart)")
+>     print("   module       - Scaffold a new project module (<module_name>)")                                                        >     print("   plugin       - Manage or run workspace plugins (list|run)")
+>     print("   analytics    - Run system telemetry & analytics analyzer")
+>     print("   verify       - Run comprehensive system verification suite")
+>     print("   sync         - Force immediate Git repository sync")
+>     print("=============================================================")
+>
+> def main():
+>     if len(sys.argv) < 2:
+>         print_help()
+>         sys.exit(1)
+>
+>     cmd = sys.argv[1]
+>     args = sys.argv[2:]
+>
+>     if cmd == "status":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_status.py")])
+>     elif cmd == "tui":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "executive_tui.py")])
+>     elif cmd == "snippets":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_snippets.py")] + args)
+>     elif cmd == "vault":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_vault.py")] + args)
+>     elif cmd == "orchestrate":
+>         os.execv("/bin/bash", ["bash", os.path.join(WORKSPACE_DIR, "workspace_master_orchestrator.sh")] + args)
+>     elif cmd == "module":
+>         os.execv("/bin/bash", ["bash", os.path.join(WORKSPACE_DIR, "new_module.sh")] + args)
+>     elif cmd == "plugin":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_plugins.py")] + args)
+>     elif cmd == "analytics":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_telemetry_analyzer.py")])
+>     elif cmd == "verify":
+>         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_verify.py")])
+>     elif cmd == "sync":                                          >         os.execv("/bin/bash", ["bash", os.path.join(WORKSPACE_DIR, "workspace_backup_sync.sh")])
+>     else:
+>         print(f"Unknown command: {cmd}")
+>         print_help()
+>         sys.exit(1)
+>
+> if __name__ == "__main__":
+>     main()
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x exec-spec
+~/termux_workspace $ execspec vault list
+  File "/data/data/com.termux/files/home/termux_workspace/workspace_vault.py", line 10                                                    import base6f if False else base64
+                  ^^
+SyntaxError: invalid syntax
+~/termux_workspace $ git add workspace_vault.py exec-spec
+~/termux_workspace $ git commit -m "feat: implement executive spectrum secure credential vault and integrate into master CLI"
+[*] Running pre-commit health check and syntax validation...
+  File "/data/data/com.termux/files/home/termux_workspace/workspace_vault.py", line 10
+    import base6f if False else base64
+                  ^^
+SyntaxError: invalid syntax
+~/termux_workspace $ git push origin main
+Everything up-to-date
+~/termux_workspace $ #!/usr/bin/env python3
+~/termux_workspace $ # ==============================================================================
+~/termux_workspace $ # Executive Spectrum - Unified Master CLI Control Utility (Continued)
+~/termux_workspace $ # EB Enterprises | Automated Terminal Environment
+~/termux_workspace $ # ==============================================================================
+~/termux_workspace $
+~/termux_workspace $     elif cmd == "snippets":
+bash: syntax error near unexpected token `elif'
+~/termux_workspace $         os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_snippets.py")] + args)  bash: syntax error near unexpected token `sys.executable,'
+~/termux_workspace $     elif cmd == "module" and args:
+bash: syntax error near unexpected token `elif'
+~/termux_workspace $         os.execv("bash", ["bash", os.path.join(WORKSPACE_DIR, "new_module.sh")] + args)
+bash: syntax error near unexpected token `"bash",'
+~/termux_workspace $     elif cmd == "sync":
+bash: syntax error near unexpected token `elif'
+~/termux_workspace $         os.execv("bash", ["bash", os.path.join(WORKSPACE_DIR, "workspace_backup_sync.sh")])
+bash: syntax error near unexpected token `"bash",'
+~/termux_workspace $     else:
+No command else: found, did you mean:                               Command plser in package libgnustep-base
+~/termux_workspace $         print_help()
+>
+> if __name__ == "__main__":
+>     main()                                                       > chmod +x exec-spec
+bash: syntax error near unexpected token `chmod'
+~/termux_workspace $ git add exec-spec
+~/termux_workspace $ git commit -m "feat: complete unified master CLI control utility (exec-spec)"
+[*] Running pre-commit health check and syntax validation...
+  File "/data/data/com.termux/files/home/termux_workspace/workspace_vault.py", line 10                                                    import base6f if False else base64
+                  ^^
+SyntaxError: invalid syntax
+~/termux_workspace $ git push origin main
+Everything up-to-date
+~/termux_workspace $
