@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Unified Master CLI Control Utility (Continued)
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+    elif cmd == "snippets":
+        os.execv(sys.executable, [sys.executable, os.path.join(WORKSPACE_DIR, "workspace_snippets.py")] + args)
+    elif cmd == "module" and args:
+        os.execv("bash", ["bash", os.path.join(WORKSPACE_DIR, "new_module.sh")] + args)
+    elif cmd == "sync":
+        os.execv("bash", ["bash", os.path.join(WORKSPACE_DIR, "workspace_backup_sync.sh")])
+    else:
+        print_help()
+
+if __name__ == "__main__":
+    main()
