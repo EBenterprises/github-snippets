@@ -1,0 +1,62 @@
+cat << 'EOF' > workspace_tests.py
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Automated Integration Test Suite
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import subprocess
+import sys
+
+def run_cmd(cmd):
+    res = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    return res.returncode, res.stdout, res.stderr
+
+def test_cli():
+    code, out, err = run_cmd("./exec-spec status")
+    assert code == 0, f"Status failed: {err}"
+    print("[✓] CLI status command passed")
+
+    code, out, err = run_cmd("./exec-spec verify")
+    assert code == 0, f"Verify failed: {err}"
+    print("[✓] CLI verify command passed")
+
+    code, out, err = run_cmd("./exec-spec analytics")
+    assert code == 0, f"Analytics failed: {err}"
+    print("[✓] CLI analytics command passed")
+
+if __name__ == "__main__":
+    print("Running Executive Spectrum Integration Tests...")
+    try:
+        test_cli()
+        print("[+] All integration tests passed successfully.")
+    except AssertionError as e:
+        print(f"[-] Test failed: {e}")
+        sys.exit(1)
+EOF
+
+cat << 'EOF' > workspace_init.sh
+#!/usr/bin/env bash
+# ==============================================================================
+# Executive Spectrum - Environment Initializer & Setup
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+WORKSPACE_DIR="$HOME/termux_workspace"
+mkdir -p "$WORKSPACE_DIR/.vault" "$WORKSPACE_DIR/modules" "$WORKSPACE_DIR/plugins"
+
+echo "[+] Setting executable permissions across workspace utilities..."
+chmod +x "$WORKSPACE_DIR"/exec-spec
+chmod +x "$WORKSPACE_DIR"/*.sh
+chmod +x "$WORKSPACE_DIR"/*.py
+
+echo "[+] Executive Spectrum environment initialized successfully."
+EOF
+
+chmod +x workspace_tests.py workspace_init.sh
+./workspace_init.sh
+python3 workspace_tests.py
+
+git add workspace_tests.py workspace_init.sh
+git commit -m "feat: add automated integration test suite and environment initializer script"
+git push origin main
