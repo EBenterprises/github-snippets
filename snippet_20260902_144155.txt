@@ -1,0 +1,5 @@
+git pull --rebase origin main
+git push origin main
+./workspace_master_pipeline.sh
+python3 workspace_bootstrap_factory.py
+./exec-spec orchestrate status
