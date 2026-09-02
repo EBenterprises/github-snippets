@@ -1,0 +1,83 @@
+cat << 'EOF' > workspace_master_orchestrator.sh
+#!/usr/bin/env bash
+# ==============================================================================
+# Executive Spectrum - Master Daemon Orchestrator
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+HOME_DIR="${HOME:-/data/data/com.termux/files/home}"
+WORKSPACE_DIR="$HOME_DIR/termux_workspace"
+DAEMON_LOG="$HOME_DIR/.workspace_daemon.log"
+
+start_daemons() {
+    echo "[+] Starting Executive Spectrum background daemons..." | tee -a "$DAEMON_LOG"
+    
+    # 1. Status loop daemon
+    if ! pgrep -f "workspace_status.sh" > /dev/null; then
+        nohup bash "$WORKSPACE_DIR/workspace_status.sh" > /dev/null 2>&1 &
+        echo "   - Started workspace_status.sh (PID: $!)"
+    fi
+
+    # 2. Clipboard daemon
+    if ! pgrep -f "clip_daemon.sh" > /dev/null; then
+        nohup bash "$WORKSPACE_DIR/clip_daemon.sh" > /dev/null 2>&1 &
+        echo "   - Started clip_daemon.sh (PID: $!)"
+    fi
+
+    # 3. Cron scheduler daemon
+    if ! pgrep -f "run_cron_scheduler.sh" > /dev/null; then
+        nohup bash "$WORKSPACE_DIR/run_cron_scheduler.sh" > /dev/null 2>&1 &
+        echo "   - Started run_cron_scheduler.sh (PID: $!)"
+    fi
+
+    # 4. Health monitor daemon
+    if ! pgrep -f "workspace_health_monitor.py" > /dev/null; then
+        nohup python3 "$WORKSPACE_DIR/workspace_health_monitor.py" > /dev/null 2>&1 &
+        echo "   - Started workspace_health_monitor.py (PID: $!)"
+    fi
+
+    # 5. Web UI dashboard daemon
+    if ! pgrep -f "web_ui_dashboard.py" > /dev/null; then
+        nohup python3 "$WORKSPACE_DIR/web_ui_dashboard.py" > /dev/null 2>&1 &
+        echo "   - Started web_ui_dashboard.py (PID: $!)"
+    fi
+}
+
+stop_daemons() {
+    echo "[+] Stopping Executive Spectrum background daemons..." | tee -a "$DAEMON_LOG"
+    pkill -f "workspace_status.sh"
+    pkill -f "clip_daemon.sh"
+    pkill -f "run_cron_scheduler.sh"
+    pkill -f "workspace_health_monitor.py"
+    pkill -f "web_ui_dashboard.py"
+    echo "   - All managed background daemons terminated."
+}
+
+case "$1" in
+    start)
+        start_daemons
+        ;;
+    stop)
+        stop_daemons
+        ;;
+    restart)
+        stop_daemons
+        sleep 1
+        start_daemons
+        ;;
+    status)
+        python3 "$WORKSPACE_DIR/workspace_status.py"
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+EOF
+
+chmod +x workspace_master_orchestrator.sh
+execspec orchestrate start
+python3 workspace_verify.py
+git add workspace_master_orchestrator.sh
+git commit -m "feat: integrate health monitor and web dashboard into master orchestrator"
+git push origin main
