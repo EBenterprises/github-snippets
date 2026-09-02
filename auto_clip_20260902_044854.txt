@@ -1,0 +1,2 @@
+git checkout -- telemetry_stream.jsonl
+python3 workspace_status.py
