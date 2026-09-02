@@ -1,0 +1,10 @@
+cat << 'EOF' >> .gitignore
+telemetry_stream.jsonl
+.workspace_telemetry.jsonl
+.workspace_daemon.log
+workspace_daemon.log
+EOF
+
+git add .gitignore
+git commit -m "chore: add runtime telemetry and log files to gitignore"
+git push origin main
