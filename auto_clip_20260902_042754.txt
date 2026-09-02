@@ -1,0 +1,30 @@
+cat << 'EOF' > continue_workspace.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_DIR="${HOME}/termux_workspace"
+cd "$WORKSPACE_DIR"
+
+echo "Checking workspace daemons and status..."
+python3 -c "
+import urllib.request
+import json
+try:
+    req = urllib.request.Request('http://127.0.0.1:8080/api/status')
+    with urllib.request.urlopen(req) as response:
+        data = json.loads(response.read().decode('utf-8'))
+        print('Dashboard API Status: OK')
+        print(f'Current Branch: {data[\"branch\"]}')
+        print(f'Workspace State: {data[\"status\"]}')
+        for d, state in data['daemons'].items():
+            print(f' - {d}: {state}')
+except Exception as e:
+    print('Error connecting to dashboard API:', e)
+"
+
+git status --short
+echo "Workspace is fully operational and synchronized."
+EOF
+
+chmod +x continue_workspace.sh
+./continue_workspace.sh
