@@ -1,0 +1,5 @@
+git pull --rebase origin main
+git push origin main
+./workspace_master_pipeline.sh
+./exec-spec orchestrate status
+python3 workspace_version_control.py
