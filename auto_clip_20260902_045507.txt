@@ -1,0 +1,1 @@
+execspec tui
