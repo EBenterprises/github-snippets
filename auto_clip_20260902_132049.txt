@@ -1,0 +1,4 @@
+chmod +x exec-spec
+git add exec-spec
+git commit -m "feat: complete unified master CLI control utility (exec-spec)"
+git push origin main
