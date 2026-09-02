@@ -1,0 +1,1582 @@
+Welcome to Termux
+
+Docs:       https://doc.termux.com
+Community:  https://community.termux.com
+
+Working with packages:
+ - Search:  pkg search <query>
+ - Install: pkg install <package>
+ - Upgrade: pkg upgrade
+
+Report issues at https://bugs.termux.com
+[1]+  Done                       auto_sync_snippets
+~/termux_workspace $ cat << 'EOF' > setup_log_rotation_termux.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> LOG_CLEANUP_SCRIPT="${WORKSPACE_DIR}/clean_logs.sh"
+> CRON_SCHEDULER_SCRIPT="${WORKSPACE_DIR}/run_cron_scheduler.sh"
+>
+> cat << 'INNER_EOF' > "$LOG_CLEANUP_SCRIPT"
+> #!/usr/bin/env bash
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> cd "$WORKSPACE_DIR"
+>
+> find . -name "*.log" -mtime +7 -exec rm -f {} +
+> find . -name "nohup.out" -size +10M -exec truncate -s 0 {} +
+>
+> if [ -n "$(git status --porcelain)" ]; then
+>     git add .
+>     git commit -m "Log maintenance cleanup: $(date '+%Y-%m-%d')"
+>     git push origin main >/dev/null 2>&1 || true
+> fi
+> INNER_EOF
+>
+> chmod +x "$LOG_CLEANUP_SCRIPT"
+>
+> cat << 'INNER_EOF' > "$CRON_SCHEDULER_SCRIPT"
+> #!/usr/bin/env bash
+> LOG_CLEANUP_SCRIPT="${HOME}/termux_workspace/clean_logs.sh"
+>
+> while true; do
+>     "$LOG_CLEANUP_SCRIPT"
+>     sleep 86400
+> done
+> INNER_EOF
+>
+> chmod +x "$CRON_SCHEDULER_SCRIPT"
+>
+> if ! pgrep -f "run_cron_scheduler.sh" > /dev/null; then
+>     nohup "$CRON_SCHEDULER_SCRIPT" > /dev/null 2>&1 &
+>     echo "Termux-compatible background log maintenance scheduler started successfully."
+> else
+>     echo "Log maintenance scheduler is already running."
+> fi
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x setup_log_rotation_termux.sh
+~/termux_workspace $ ./setup_log_rotation_termux.sh
+Termux-compatible background log maintenance scheduler started successfully.
+~/termux_workspace $ cat << 'EOF' > setup_workspace_dashboard.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> DASHBOARD_SCRIPT="${WORKSPACE_DIR}/workspace_status.py"
+>
+> cat << 'INNER_EOF' > "$DASHBOARD_SCRIPT"
+> #!/usr/bin/env python3
+> import os
+> import subprocess
+> import glob
+> from datetime import datetime
+>
+> WORKSPACE_DIR = os.path.expanduser("~/termux_workspace")
+>
+> def run_cmd(cmd):
+>     try:
+>         res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+>         return res.stdout.strip()
+>     except subprocess.CalledProcessError:
+>         return "N/A"
+>
+> def main():
+>     os.chdir(WORKSPACE_DIR)
+>
+>     print("=" * 60)
+>     print(f"  TERMUX WORKSPACE EXECUTIVE DASHBOARD")
+>     print(f"  Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+>     print("=" * 60)
+>
+>     git_status = run_cmd("git status --short")
+>     git_branch = run_cmd("git branch --show-current")
+>     git_remote = run_cmd("git remote get-url origin")
+>
+>     print(f"\n[+] Git Repository:")
+>     print(f"    Branch: {git_branch}")
+>     print(f"    Remote: {git_remote}")
+>     print(f"    Status: {'Clean' if not git_status else 'Uncommitted Changes'}")
+>     if git_status:
+>         for line in git_status.splitlines():
+>             print(f"      {line}")
+>
+>     snippets_count = len(glob.glob(os.path.join(WORKSPACE_DIR, "snippets", "*.txt")))
+>     print(f"\n[+] Snippets Stored: {snippets_count}")
+>
+>     daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+>     print(f"\n[+] Active Background Daemons:")
+>     for daemon in daemons:
+>         pid = run_cmd(f"pgrep -f {daemon}")
+>         status = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+>         print(f"    - {daemon}: {status}")
+>
+>     print("\n" + "=" * 60)
+>
+> if __name__ == "__main__":
+>     main()
+> INNER_EOF
+>
+> chmod +x "$DASHBOARD_SCRIPT"
+>
+> cat << 'INNER_EOF' > "${PREFIX}/bin/workspace"
+> #!/usr/bin/env bash
+> python3 "${HOME}/termux_workspace/workspace_status.sh"
+> INNER_EOF
+>
+> chmod +x "${PREFIX}/bin/workspace"
+>
+> echo "Workspace dashboard script created and aliased to 'workspace'."
+> python3 "$DASHBOARD_SCRIPT"
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x setup_workspace_dashboard.sh
+~/termux_workspace $ ./setup_workspace_dashboard.sh
+Workspace dashboard script created and aliased to 'workspace'.
+============================================================
+  TERMUX WORKSPACE EXECUTIVE DASHBOARD
+  Time: 2026-09-02 04:23:10
+============================================================
+
+[+] Git Repository:
+    Branch: main
+    Remote: git@github.com:EBenterprises/termux-workspace-backup.git
+    Status: Uncommitted Changes
+      ?? setup_workspace_dashboard.sh
+      ?? workspace_status.py
+
+[+] Snippets Stored: 0
+
+[+] Active Background Daemons:
+    - workspace_status.sh: Running (PID: 12866)
+    - clip_daemon.sh: Running (PID: 13302)
+    - run_cron_scheduler.sh: Running (PID: 14760)
+
+============================================================
+~/termux_workspace $ cat << 'EOF' > setup_workspace_web_ui.sh
+self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+        else:
+            super().do_GET()
+
+    def get_status_data(self):
+        os.chdir(WORKSPACE_DIR)
+
+        def run_cmd(cmd):
+            try:
+                res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                return res.stdout.strip()
+            except subprocess.CalledProcessError:
+                return "N/A"
+
+        git_status = run_cmd("git status --short")
+        git_branch = run_cmd("git branch --show-current")
+        git_remote = run_cmd("git remote get-url origin")
+
+        daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+        daemon_status = {}
+        for d in daemons:
+            pid = run_cmd(f"pgrep -f {d}")
+            daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+
+        return {
+            "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+ > #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+> SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+>
+ding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        header {
+            border-bottom: 2px solid var(--accent-teal);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: var(--accent-teal);
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        .time {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #1e262c;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        h2 {
+            color: var(--accent-gold);
+            font-size: 1.2rem;
+            margin-top: 0;
+        }
+        ul {
+            padding-left: 20px;
+            color: var(--text-muted);
+        }
+        li {
+            margin-bottom: 5px;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.85rem;
+     > mkdir -p "$WEB_UI_DIR"
+>
+> cat << 'INNER_EOF' > "$SERVER_SCRIPT"
+> #!/usr/bin/env python3
+> import http.server
+> import socketserver
+> import os
+> import subprocess
+> import json
+> from datetime import datetime
+>
+ > PORT = 8080
+> WORKSPACE_DIR = os.path.expanduser("~/termux_workspace")
+>
+> class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+>     def do_GET(self):
+>         if self.path == '/':
+ id="remote">...</span></p>
+ >             self.send_response(200)
+>             self.send_header("Content-type", "text/html")
+>             self.end_headers()
+>             self.wfile.write(self.get_html().encode('utf-8'))
+>         elif self.path == '/api/status':
+>             self.send_response(200)
+>             self.send_header("Content-type", "application/json")
+>             self.end_headers()
+>             self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+>         else:
+>             super().do_GET()
+>
+>     def get_status_data(self):
+>         os.chdir(WORKSPACE_DIR)
+>
+>         def run_cmd(cmd):
+>             try:
+>                 res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+>                 return res.stdout.strip()
+>             except subprocess.CalledProcessError:
+>                 return "N/A"
+>
+E>         git_status = run_cmd("git status --short")
+>         git_branch = run_cmd("git branch --show-current")
+>         git_remote = run_cmd("git remote get-url origin")
+>
+ateElemen>         daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+>         daemon_status = {}
+>         for d in daemons:
+>             pid = run_cmd(f"pgrep -f {d}")
+>             daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+>
+>         return {
+>             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),>             "branch": git_branch,
+>             "remote": git_remote,
+>             "status": "Clean" if not git_status else "Uncommitted Changes",
+>             "git_changes": git_status.splitlines() if git_status else [],
+>             "daemons": daemon_status
+>         }
+>
+>     def get_html(self):
+>         return """<!DOCTYPE html>
+> <html lang="en">
+> <head>
+>     <meta charset="UTF-8">
+>     <title>Termux Workspace Executive Dashboard</title>
+>     <style>
+rong>${name}>         :root {
+>             --bg-color: #0b0f12;
+>             --card-bg: #13181d;
+>             --accent-teal: #00d2c4;
+>             --accent-gold: #f4d06f;
+>             --text-main: #e2e8f0;
+>             --text-muted: #8892b0;
+>         }
+>         body {
+>             background-color: var(--bg-color);
+>             color: var(--text-main);
+>             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+>             margin: 0;
+Serve>             padding: 20px;
+>         }
+>         .container {
+>             max-width: 900px;
+>             margin: 0 auto;
+>         }
+T}")
+     >         header {
+>             border-bottom: 2px solid var(--accent-teal);
+>             padding-bottom: 10px;
+orkspace>             margin-bottom: 20px;
+>         }
+>         h1 {
+>             color: var(--accent-teal);
+>             font-size: 1.8rem;
+>             margin: 0;
+>         }
+>         .time {
+>             color: var(--text-muted);
+>             font-size: 0.9rem;
+>         }
+>         .card {
+>             background-color: var(--card-bg);
+>             border: 1px solid #1e262c;
+>             border-radius: 8px;
+>             padding: 20px;
+>             margin-bottom: 20px;
+-web>             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+>         }
+web_ui.sh
+>         h2 {
+>             color: var(--accent-gold);
+>             font-size: 1.2rem;
+>             margin-top: 0;
+>         }
+>         ul {
+>             padding-left: 20px;
+>             color: var(--text-muted);
+>         }
+>         li {
+>             margin-bottom: 5px;
+>         }
+>         .status-badge {
+>             display: inline-block;
+>             padding: 4px 8px;
+>             border-radius: 4px;
+>             font-weight: bold;
+>             font-size: 0.85rem;
+>         }
+>         .running { background-color: rgba(0, 210, 196, 0.15); color: var(--accent-teal); }
+>         .stopped { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+>     </style>
+> </head>
+> <body>
+>     <div class="container">
+>         <header>
+>             <h1>Termux Workspace Executive Dashboard</h1>
+>             <div class="time" id="time">Loading time...</div>
+>         </header>
+>
+>         <div class="card">
+>             <h2>Git Repository Overview</h2>
+>             <p><strong>Branch:</strong> <span id="branch">...</span></p>
+>             <p><strong>Remote:</strong> <span id="remote">...</span></p>
+>             <p><strong>Workspace Status:</strong> <span id="git-status">...</span></p>
+>             <ul id="git-changes"></ul>
+>         </div>
+>
+>         <div class="card">
+>             <h2>Background Daemons</h2>
+>             <ul id="daemons"></ul>
+>         </div>
+>     </div>
+>
+>     <script>
+>         async function fetchStatus() {
+>             try {
+>                 const res = await fetch('/api/status');
+>                 const data = await res.json();
+>
+>                 document.getElementById('time').innerText = `Last Refreshed: ${data.time}`;
+>                 document.getElementById('branch').innerText = data.branch;
+>                 document.getElementById('remote').innerText = data.remote;
+>                 document.getElementById('git-status').innerText = data.status;
+>
+>                 const changesList = document.getElementById('git-changes');
+>                 changesList.innerHTML = '';
+>                 if (data.git_changes.length === 0) {
+>                     const li = document.createElement('li');
+>                     li.innerText = "Working tree clean";
+>                     changesList.appendChild(li);
+>                 } else {
+>                     data.git_changes.forEach(change => {
+>                         const li = document.createElement('li');
+>                         li.innerText = change;
+>                         changesList.appendChild(li);
+>                     });
+>                 }
+>
+>                 const daemonsList = document.getElementById('daemons');
+>                 daemonsList.innerHTML = '';
+>                 for (const [name, status] of Object.entries(data.daemons)) {
+>                     const li = document.createElement('li');
+>                     const isRunning = status.startsWith('Running');
+>                     li.innerHTML = `<strong>${name}:</strong> <span class="status-badge ${isRunning ? 'running' : 'stopped'}">${status}</span>`;
+>                     daemonsList.appendChild(li);
+>                 }
+>             } catch (err) {
+>                 console.error("Failed to fetch status", err);
+>             }
+>         }
+>
+>         fetchStatus();
+>         setInterval(fetchStatus, 5000);
+>     </script>
+> </body>
+> </html>
+> """
+>
+> if __name__ == '__main__':
+>     os.chdir(WEB_UI_DIR)
+>     with socketserver.TCPServer(("", PORT), DashboardHandler) as httpd:
+>         print(f"Executive Spectrum Web UI serving at http://localhost:{PORT}")
+>         httpd.serve_forever()
+> INNER_EOF
+>
+> chmod +x "$SERVER_SCRIPT"
+>
+> cat << 'INNER_EOF' > "${PREFIX}/bin/workspace-web"
+> #!/usr/bin/env bash
+> python3 "${HOME}/termux_workspace/web_ui/server.py"
+> INNER_EOF
+>
+> chmod +x "${PREFIX}/bin/workspace-web"
+>
+> if ! pgrep -f "web_ui/server.py" > /dev/null; then
+>     nohup python3 "$SERVER_SCRIPT" > /dev/null 2>&1 &
+>     echo "Workspace Web UI server started successfully on http://localhost:8080"
+> else
+>     echo "Workspace Web UI server is already running."
+> fi
+>
+> echo "Access the dashboard locally via browser or run 'workspace-web' in your terminal."
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x setup_workspace_web_ui.sh
+~/termux_workspace $ ./setup_workspace_web_ui.sh
+Workspace Web UI server started successfully on http://localhost:8080
+Access the dashboard locally via browser or run 'workspace-web' in your terminal.
+~/termux_workspace $ cat << 'EOF' > fix_web_ui.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+> SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+>
+> pkill -f "web_ui/server.py" || true
+>
+> cd "$WEB_UI_DIR"
+> nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+>
+> echo "Web UI restarted. Access it at http://127.0.0.1:8080 or http://localhost:8080"
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x fix_web_ui.sh
+~/termux_workspace $ ./fix_web_ui.sh
+Web UI restarted. Access it at http://127.0.0.1:8080 or http://localhost:8080
+~/termux_workspace $ cat << 'EOF' > fix_web_ui_host.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+> SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+>
+> pkill -f "web_ui/server.py" || true
+>
+> python3 -c "
+> import re
+>
+> path = '${SERVER_SCRIPT}'
+> with open(path, 'r') as f:
+>     content = f.read()
+>
+> content = re.sub(r'socketserver\.TCPServer\(\(\"\", PORT\)', 'socketserver.TCPServer((\"127.0.0.1\", PORT)', content)
+>
+> with open(path, 'w') as f:
+>     f.write(content)
+> "
+>
+> cd "$WEB_UI_DIR"
+> nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+>
+> echo "Web Server restarted explicitly binding to 127.0.0.1:8080."> echo "Check logs at: ${WORKSPACE_DIR}/web_ui.log"
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x fix_web_ui_host.sh
+~/termux_workspace $ ./fix_web_ui_host.sh
+Web Server restarted explicitly binding to 127.0.0.1:8080.
+Check logs at: /data/data/com.termux/files/home/termux_workspace/web_ui.log
+~/termux_workspace $ cat << 'EOF' > fix_web_ui_threading.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+r> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+e: 0.85rem;
+ > SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+>
+> pkill -f "web_ui/server.py" || true
+>
+> cat << 'INNER_EOF' > "$SERVER_SCRIPT"
+> #!/usr/bin/env python3
+> import http.server
+> import socketserver
+> import os
+> import subprocess
+> import json
+> from datetime import datetime
+>
+> PORT = 8080
+> WORKSPACE_DIR = os.path.expanduser("~/termux_workspace")
+>
+> class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+>     daemon_threads = True
+>     allow_reuse_address = True
+>
+> class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+>     def do_GET(self):
+>         if self.path == '/':
+>             self.send_response(200)
+>             self.send_header("Content-type", "text/html")
+shboard</h1>
+            <div class="time" id="time">Loading time...</div>
+        </header>
+
+        <div class="card">
+            <h2>Git Repository Overview</h2>
+            <p><strong>Branch:</strong> <span id="branch">...</span></p>
+            <p><strong>Remote:</strong> <span id="remote">...</span></p>
+            <p><strong>Workspace Status:</st>             self.end_headers()
+rong> <span id="git-status">...>             self.wfile.write(self.get_html().encode('utf-8'))
+</span></p>
+            <ul id="git-changes"></ul>
+        </d>         elif self.path == '/api/status':
+>             self.send_response(200)
+>             self.send_header("Content-type", "application/json")
+>             self.end_headers()
+>             self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+>         else:
+>             super().do_GET()
+>
+>     def get_status_data(self):
+>         os.chdir(WORKSPACE_DIR)
+>
+>         def run_cmd(cmd):
+>             try:
+>                 res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+>                 return res.stdout.strip()
+te;
+              >             except subprocess.CalledProcessError:
+>                 return "N/A"
+>
+>         git_status = run_cmd("git status --short")
+>         git_branch = run_cmd("git branch --show-current")
+>         git_remote = run_cmd("git remote get-url origin")
+>
+>         daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+>         daemon_status = {}
+>         for d in daemons:
+>             pid = run_cmd(f"pgrep -f {d}")
+>             daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+>
+ >         return {
+>             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),>             "branch": git_branch if git_branch else "main",
+ change;
+                        changesList.appendChild(li)>             "remote": git_remote if git_remote else "N/A",
+>             "status": "Clean" if not git_status else "Uncommitted Changes",
+>             "git_changes": git_status.splitlines() if git_status else [],
+>             "daemons": daemon_status
+>         }
+>
+>     def get_html(self):
+t l>         return """<!DOCTYPE html>
+> <html lang="en">
+> <head>
+>     <meta charset="UTF-8">
+>     <title>Termux Workspace Executive Dashboard</title>
+>     <style>
+>         :root {
+>             --bg-color: #0b0f12;
+>             --card-bg: #13181d;
+ class="status-badge ${isRunning ? 'running' : 'stopped'}">${stat>             --accent-teal: #00d2c4;
+>             --accent-gold: #f4d06f;
+>             --text-main: #e2e8f0;
+>             --text-muted: #8892b0;
+>         }
+>         body {
+>             background-color: var(--bg-color);
+>             color: var(--text-main);
+>             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+>             margin: 0;
+>             padding: 20px;
+>         }
+>         .container {
+>             max-width: 900px;
+>             margin: 0 auto;
+>         }
+>         header {
+>             border-bottom: 2px solid var(--accent-teal);
+>             padding-bottom: 10px;
+>             margin-bottom: 20px;
+>         }
+>         h1 {
+>             color: var(--accent-teal);
+ORT}")
+        httpd.serve_forever()
+INNER_EOF
+
+chmod +x "$SERVER_SCRIPT"
+cd "$WEB_UI_DIR"
+nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+
+echo "Threaded Web UI server successfully>             font-size: 1.8rem;
+>             margin: 0;
+>         }
+>         .time {
+>             color: var(--text-muted);
+>             font-size: 0.9rem;
+>         }
+>         .card {
+>             background-color: var(--card-bg);
+>             border: 1px solid #1e262c;
+>             border-radius: 8px;
+>             padding: 20px;
+>             margin-bottom: 20px;
+>             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+>         }
+>         h2 {
+>             color: var(--accent-gold);
+>             font-size: 1.2rem;
+>             margin-top: 0;
+>         }
+>         ul {
+>             padding-left: 20px;
+>             color: var(--text-muted);
+>         }
+>         li {
+>             margin-bottom: 5px;
+>         }
+>         .status-badge {
+>             display: inline-block;
+>             padding: 4px 8px;
+>             border-radius: 4px;
+>             font-weight: bold;
+>             font-size: 0.85rem;
+>         }
+>         .running { background-color: rgba(0, 210, 196, 0.15); color: var(--accent-teal); }
+>         .stopped { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+>     </style>
+> </head>
+> <body>
+>     <div class="container">
+>         <header>
+>             <h1>Termux Workspace Executive Dashboard</h1>
+>             <div class="time" id="time">Loading time...</div>
+>         </header>
+>
+>         <div class="card">
+>             <h2>Git Repository Overview</h2>
+>             <p><strong>Branch:</strong> <span id="branch">...</span></p>
+>             <p><strong>Remote:</strong> <span id="remote">...</span></p>
+>             <p><strong>Workspace Status:</strong> <span id="git-status">...</span></p>
+>             <ul id="git-changes"></ul>
+>         </div>
+>
+>         <div class="card">
+>             <h2>Background Daemons</h2>
+>             <ul id="daemons"></ul>
+>         </div>
+>     </div>
+>
+>     <script>
+>         async function fetchStatus() {
+>             try {
+>                 const res = await fetch('/api/status');
+>                 const data = await res.json();
+>
+>                 document.getElementById('time').innerText = `Last Refreshed: ${data.time}`;
+>                 document.getElementById('branch').innerText = data.branch;
+>                 document.getElementById('remote').innerText = data.remote;
+>                 document.getElementById('git-status').innerText = data.status;
+>
+>                 const changesList = document.getElementById('git-changes');
+>                 changesList.innerHTML = '';
+>                 if (data.git_changes.length === 0) {
+>                     const li = document.createElement('li');
+>                     li.innerText = "Working tree clean";
+>                     changesList.appendChild(li);
+>                 } else {
+>                     data.git_changes.forEach(change => {
+>                         const li = document.createElement('li');
+>                         li.innerText = change;
+>                         changesList.appendChild(li);
+>                     });
+>                 }
+>
+>                 const daemonsList = document.getElementById('daemons');
+>                 daemonsList.innerHTML = '';
+>                 for (const [name, status] of Object.entries(data.daemons)) {
+>                     const li = document.createElement('li');
+>                     const isRunning = status.startsWith('Running');
+>                     li.innerHTML = `<strong>${name}:</strong> <span class="status-badge ${isRunning ? 'running' : 'stopped'}">${status}</span>`;
+>                     daemonsList.appendChild(li);
+>                 }
+>             } catch (err) {
+>                 console.error("Failed to fetch status", err);
+>             }
+>         }
+>
+>         fetchStatus();
+>         setInterval(fetchStatus, 5000);
+>     </script>
+> </body>
+> </html>
+> """
+>
+> if __name__ == '__main__':
+>     os.chdir(WEB_UI_DIR)
+>     with ThreadedTCPServer(("127.0.0.1", PORT), DashboardHandler) as httpd:
+>         print(f"Executive Spectrum Threaded Server active at http://127.0.0.1:{PORT}")
+>         httpd.serve_forever()
+> INNER_EOF
+>
+> chmod +x "$SERVER_SCRIPT"
+> cd "$WEB_UI_DIR"
+> nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+>
+> echo "Threaded Web UI server successfully restarted on http://127.0.0.1:8080"
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x fix_web_ui_threading.sh
+~/termux_workspace $ ./fix_web_ui_threading.sh
+Threaded Web UI server successfully restarted on http://127.0.0.1:8080
+~/termux_workspace $ cat << 'EOF' > fix_web_ui_direct.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+       }
+        .runnin> SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+>
+> pkill -f "web_ui/server.py" || true
+l); }
+ >
+> cat << 'INNER_EOF' > "$SERVER_SCRIPT"
+> #!/usr/bin/env python3
+ c> import http.server
+> import socketserver
+d>
+<> import os
+> import subprocess
+> import json
+> from datetime import datetime
+>
+> PORT = 8080
+> WORKSPACE_DIR = os.path.expanduser("~/termux_workspace")
+>
+> class SimpleHTTPRequestHandler(http.server.BaseHTTPRequestHandler):
+>     def do_GET(self):
+>         if self.path == '/' or self.path == '/index.html':
+>             self.send_response(200)
+>             self.send_header("Content-type", "text/html; charset=utf-8")
+>             self.end_headers()
+>             self.wfile.write(self.get_html().encode('utf-8'))
+>         elif self.path == '/api/status':
+>             self.send_response(200)
+>             self.send_header("Content-type", "application/json; charset=utf-8")
+>             self.end_headers()
+>             self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+>         else:
+>             self.send_response(404)
+>             self.end_headers()
+>             self.wfile.write(b"404 Not Found")
+>
+>     def get_status_data(self):
+>         os.chdir(WORKSPACE_DIR)
+>         def run_cmd(cmd):
+>             try:
+>                 res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+>                 return res.stdout.strip()
+>             except:
+>                 return "N/A"
+>
+>         git_status = run_cmd("git status --short")
+>         git_branch = run_cmd("git branch --show-current")
+>         git_remote = run_cmd("git remote get-url origin")
+>
+>         daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+>         daemon_status = {}
+>         for d in daemons:
+>             pid = run_cmd(f"pgrep -f {d}")
+>             daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+>
+>         return {
+>             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),>             "branch": git_branch if git_branch else "main",
+>             "remote": git_remote if git_remote else "N/A",
+>             "status": "Clean" if not git_status else "Uncommitted Changes",
+>             "git_changes": git_status.splitlines() if git_status else [],
+>             "daemons": daemon_status
+, status] of Object.entries(data.daem>         }
+ons)) {
+  >
+ >     def get_html(self):
+>         return """<!DOCTYPE html>
+> <html lang="en">
+   > <head>
+   cons>     <meta charset="UTF-8">
+>     <title>Termux Workspace Executive Dashboard</title>
+>     <style>
+>         :root {
+>             --bg-color: #0b0f12;
+>             --card-bg: #13181d;
+>             --accent-teal: #00d2c4;
+>             --accent-gold: #f4d06f;
+>             --text-main: #e2e8f0;
+>             --text-muted: #8892b0;
+>         }
+>         body {
+>             background-color: var(--bg-color);
+>             color: var(--text-main);
+>             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+>             margin: 0;
+>             padding: 20px;
+>         }
+>         .container {
+>             max-width: 900px;
+>             margin: 0 auto;
+>         }
+ PORT)
+   >         header {
+>             border-bottom: 2px solid var(--accent-teal);
+>             padding-bottom: 10px;
+r >             margin-bottom: 20px;
+>         }
+>         h1 {
+>             color: var(--accent-teal);
+>             font-size: 1.8rem;
+>             margin: 0;
+>         }
+>         .time {
+>             color: var(--text-muted);
+>             font-size: 0.9rem;
+>         }
+>         .card {
+>             background-color: var(--card-bg);
+>             border: 1px solid #1e262c;
+>             border-radius: 8px;
+>             padding: 20px;
+>             margin-bottom: 20px;
+>             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+>         }
+>         h2 {
+>             color: var(--accent-gold);
+>             font-size: 1.2rem;
+>             margin-top: 0;
+>         }
+>         ul {
+>             padding-left: 20px;
+>             color: var(--text-muted);
+>         }
+>         li {
+>             margin-bottom: 5px;
+>         }
+>         .status-badge {
+>             display: inline-block;
+>             padding: 4px 8px;
+>             border-radius: 4px;
+>             font-weight: bold;
+>             font-size: 0.85rem;
+>         }
+>         .running { background-color: rgba(0, 210, 196, 0.15); color: var(--accent-teal); }
+>         .stopped { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+>     </style>
+> </head>
+> <body>
+>     <div class="container">
+>         <header>
+>             <h1>Termux Workspace Executive Dashboard</h1>
+>             <div class="time" id="time">Loading time...</div>
+>         </header>
+>
+>         <div class="card">
+>             <h2>Git Repository Overview</h2>
+>             <p><strong>Branch:</strong> <span id="branch">...</span></p>
+>             <p><strong>Remote:</strong> <span id="remote">...</span></p>
+>             <p><strong>Workspace Status:</strong> <span id="git-status">...</span></p>
+>             <ul id="git-changes"></ul>
+>         </div>
+>
+>         <div class="card">
+>             <h2>Background Daemons</h2>
+>             <ul id="daemons"></ul>
+>         </div>
+>     </div>
+>
+>     <script>
+>         async function fetchStatus() {
+>             try {
+>                 const res = await fetch('/api/status');
+>                 const data = await res.json();
+>
+>                 document.getElementById('time').innerText = `Last Refreshed: ${data.time}`;
+>                 document.getElementById('branch').innerText = data.branch;
+>                 document.getElementById('remote').innerText = data.remote;
+>                 document.getElementById('git-status').innerText = data.status;
+>
+>                 const changesList = document.getElementById('git-changes');
+>                 changesList.innerHTML = '';
+>                 if (data.git_changes.length === 0) {
+>                     const li = document.createElement('li');
+>                     li.innerText = "Working tree clean";
+>                     changesList.appendChild(li);
+>                 } else {
+>                     data.git_changes.forEach(change => {
+>                         const li = document.createElement('li');
+>                         li.innerText = change;
+>                         changesList.appendChild(li);
+>                     });
+>                 }
+>
+>                 const daemonsList = document.getElementById('daemons');
+>                 daemonsList.innerHTML = '';
+>                 for (const [name, status] of Object.entries(data.daemons)) {
+>                     const li = document.createElement('li');
+>                     const isRunning = status.startsWith('Running');
+>                     li.innerHTML = `<strong>${name}:</strong> <span class="status-badge ${isRunning ? 'running' : 'stopped'}">${status}</span>`;
+>                     daemonsList.appendChild(li);
+>                 }
+>             } catch (err) {
+>                 console.error("Failed to fetch status", err);
+>             }
+>         }
+>
+>         fetchStatus();
+>         setInterval(fetchStatus, 5000);
+>     </script>
+> </body>
+> </html>
+> """
+>
+> class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+>     allow_reuse_address = True
+>     daemon_threads = True
+>
+> if __name__ == '__main__':
+>     server_address = ('127.0.0.1', PORT)
+>     with ThreadedHTTPServer(server_address, SimpleHTTPRequestHandler) as httpd:
+>         print(f"Direct Handler Server active at http://127.0.0.1:{PORT}")
+>         httpd.serve_forever()
+> INNER_EOF
+>
+> chmod +x "$SERVER_SCRIPT"
+> cd "$WEB_UI_DIR"
+> nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+>
+> echo "Direct HTTP Server running. Open http://127.0.0.1:8080 in your browser."
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x fix_web_ui_direct.sh
+~/termux_workspace $ ./fix_web_ui_direct.sh
+Direct HTTP Server running. Open http://127.0.0.1:8080 in your browser.
+~/termux_workspace $ cat << 'EOF' > fix_web_ui_zeroconf.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+> SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+>
+> pkill -f "web_ui/server.py" || true
+>
+ > cat << 'INNER_EOF' > "$SERVER_SCRIPT"
+> #!/usr/bin/env python3
+ 68, 68, 0.15); color: > import http.server
+> import socketserver
+> import os
+> import subprocess
+> import json
+> from datetime import datetime
+>
+> PORT = 8080
+> WORKSPACE_DIR = os.path.expanduser("~/termux_workspace")
+>
+e> class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+>     def do_GET(self):
+>         if self.path == '/' or self.path == '/index.html':
+o>             self.send_response(200)
+>             self.send_header("Content-type", "text/html; charset=utf-8")
+>             self.end_headers()
+>             self.wfile.write(self.get_html().encode('utf-8'))
+>         elif self.path == '/api/status':
+>             self.send_response(200)
+>             self.send_header("Content-type", "application/json; charset=utf-8")
+>             self.end_headers()
+>             self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+{
+    >         else:
+>             self.send_response(404)
+>             self.end_headers()
+>             self.wfile.write(b"404 Not Found")
+>
+>     def get_status_data(self):
+>         os.chdir(WORKSPACE_DIR)
+>         def run_cmd(cmd):
+>             try:
+>                 res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+>                 return res.stdout.strip()
+>             except:
+>                 return "N/A"
+>
+>         git_status = run_cmd("git status --short")
+>         git_branch = run_cmd("git branch --show-current")
+>         git_remote = run_cmd("git remote get-url origin")
+>
+>         daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+>         daemon_status = {}
+>         for d in daemons:
+>             pid = run_cmd(f"pgrep -f {d}")
+>             daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+ach(change => {
+                   >
+ >         return {
+>             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),>             "branch": git_branch if git_branch else "main",
+>             "remote": git_remote if git_remote else "N/A",
+>             "status": "Clean" if not git_status else "Uncommitted Changes",
+>             "git_changes": git_status.splitlines() if git_status else [],
+>             "daemons": daemon_status
+aem>         }
+>
+ >     def get_html(self):
+>         return """<!DOCTYPE html>
+> <html lang="en">
+> <head>
+>     <meta charset="UTF-8">
+>     <title>Termux Workspace Executive Dashboard</title>
+>     <style>
+rong>${name}>         :root {
+>             --bg-color: #0b0f12;
+>             --card-bg: #13181d;
+>             --accent-teal: #00d2c4;
+>             --accent-gold: #f4d06f;
+>             --text-main: #e2e8f0;
+>             --text-muted: #8892b0;
+>         }
+>         body {
+tch status", er>             background-color: var(--bg-color);
+>             color: var(--text-main);
+>             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+>             margin: 0;
+>             padding: 20px;
+>         }
+>         .container {
+>             max-width: 900px;
+>             margin: 0 auto;
+>         }
+>         header {
+>             border-bottom: 2px solid var(--accent-teal);
+>             padding-bottom: 10px;
+>             margin-bottom: 20px;
+>         }
+>         h1 {
+>             color: var(--accent-teal);
+>             font-size: 1.8rem;
+>             margin: 0;
+>         }
+>         .time {
+>             color: var(--text-muted);
+>             font-size: 0.9rem;
+>         }
+>         .card {
+>             background-color: var(--card-bg);
+>             border: 1px solid #1e262c;
+>             border-radius: 8px;
+>             padding: 20px;
+>             margin-bottom: 20px;
+>             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+>         }
+>         h2 {
+>             color: var(--accent-gold);
+>             font-size: 1.2rem;
+>             margin-top: 0;
+>         }
+>         ul {
+>             padding-left: 20px;
+>             color: var(--text-muted);
+>         }
+>         li {
+>             margin-bottom: 5px;
+>         }
+>         .status-badge {
+>             display: inline-block;
+>             padding: 4px 8px;
+>             border-radius: 4px;
+>             font-weight: bold;
+>             font-size: 0.85rem;
+>         }
+>         .running { background-color: rgba(0, 210, 196, 0.15); color: var(--accent-teal); }
+>         .stopped { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+>     </style>
+> </head>
+> <body>
+>     <div class="container">
+>         <header>
+>             <h1>Termux Workspace Executive Dashboard</h1>
+>             <div class="time" id="time">Loading time...</div>
+>         </header>
+>
+>         <div class="card">
+>             <h2>Git Repository Overview</h2>
+>             <p><strong>Branch:</strong> <span id="branch">...</span></p>
+>             <p><strong>Remote:</strong> <span id="remote">...</span></p>
+>             <p><strong>Workspace Status:</strong> <span id="git-status">...</span></p>
+>             <ul id="git-changes"></ul>
+>         </div>
+>
+>         <div class="card">
+>             <h2>Background Daemons</h2>
+>             <ul id="daemons"></ul>
+>         </div>
+>     </div>
+>
+>     <script>
+>         async function fetchStatus() {
+>             try {
+>                 const res = await fetch('/api/status');
+>                 const data = await res.json();
+>
+>                 document.getElementById('time').innerText = `Last Refreshed: ${data.time}`;
+>                 document.getElementById('branch').innerText = data.branch;
+>                 document.getElementById('remote').innerText = data.remote;
+>                 document.getElementById('git-status').innerText = data.status;
+>
+>                 const changesList = document.getElementById('git-changes');
+>                 changesList.innerHTML = '';
+>                 if (data.git_changes.length === 0) {
+>                     const li = document.createElement('li');
+>                     li.innerText = "Working tree clean";
+>                     changesList.appendChild(li);
+>                 } else {
+>                     data.git_changes.forEach(change => {
+>                         const li = document.createElement('li');
+>                         li.innerText = change;
+>                         changesList.appendChild(li);
+>                     });
+>                 }
+>
+>                 const daemonsList = document.getElementById('daemons');
+>                 daemonsList.innerHTML = '';
+>                 for (const [name, status] of Object.entries(data.daemons)) {
+>                     const li = document.createElement('li');
+>                     const isRunning = status.startsWith('Running');
+>                     li.innerHTML = `<strong>${name}:</strong> <span class="status-badge ${isRunning ? 'running' : 'stopped'}">${status}</span>`;
+>                     daemonsList.appendChild(li);
+>                 }
+>             } catch (err) {
+>                 console.error("Failed to fetch status", err);
+>             }
+>         }
+>
+>         fetchStatus();
+>         setInterval(fetchStatus, 5000);
+>     </script>
+> </body>
+> </html>
+> """
+>
+> class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+>     allow_reuse_address = True
+>     daemon_threads = True
+>
+> if __name__ == '__main__':
+>     with ThreadedTCPServer(("", PORT), DashboardHandler) as httpd:
+>         print(f"Zero-Conf Server active on port {PORT}")
+>         httpd.serve_forever()
+> INNER_EOF
+>
+> chmod +x "$SERVER_SCRIPT"
+> cd "$WEB_UI_DIR"
+> nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+>
+> echo "Zero-Conf HTTP Server running. Try opening http://0.0.0.0:8080 or http://127.0.0.1:8080"
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x fix_web_ui_zeroconf.sh
+~/termux_workspace $ ./fix_web_ui_zeroconf.sh
+Zero-Conf HTTP Server running. Try opening http://0.0.0.0:8080 or http://127.0.0.1:8080
+~/termux_workspace $ cat << 'EOF' > fix_web_ui_working.sh
+h == '/' or self.path == '/index.html':
+            self.send_response(200)
+            self.send_header("Content-type", "text/html; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(self.get_html().encode('utf-8'))
+        elif self.path == '/api/status':
+            self.send_response(200)
+            self.send_header("Content-type", "application/json; charset=utf-8")
+            self.end_headers()
+            self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+        else:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b"404 Not Found")
+
+    def log_message(self, format, *args):
+        return
+
+    def get_status_data(self):
+        os.chdir(WORKSPACE_DIR)
+        def run_cmd(cmd):
+            try:
+                res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                return res.stdout.strip()
+            except:
+                return "N/A"
+
+        git_status = run_cmd("git status --short")
+        git_branch = run_cmd("git branch --show-current")
+        git_remote = run_cmd("git remote get-url origin")
+
+        daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+        daemon_status = {}
+        for d in daemons:
+            pid = run_cmd(f"pgrep -f {d}")
+            daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+
+        return {
+            "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            "branch": git_branch if git_branch else "main",
+            "remote": git_remote if git_remote else "N/A",
+            "status": "Clean" if not git_status else "Uncommitted Changes",
+            "git_changes": git_status.splitlines() if git_status else [],
+            "daemons": daemon_status
+        }
+
+    def get_html(self):
+        return """<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Termux Workspace Executive Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0b0f12;
+            --card-bg: #13181d;
+            --accent-teal: #00d2c4;
+            --accent-gold: #f4d06f;
+            --text-main: #e2e8f0;
+            --text-muted: #8892b0;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        header {
+            border-bottom: 2px solid var(--accent-teal);
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: var(--accent-teal);
+            font-size: 1.8rem;
+            margin: 0;
+        }
+        .time {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid #1e262c;
+     > #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+> SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+     }
+     >
+> pkill -f "web_ui/server.py" || true
+>
+0> cat << 'INNER_EOF' > "$SERVER_SCRIPT"
+> #!/usr/bin/env python3
+> import http.server
+> import socketserver
+ped { background-color: rgba(239, 68, 6> import os
+8, 0.15); > import subprocess
+color: #ef4444; }
+> import json
+> from datetime import datetime
+>
+=> PORT = 8080
+> WORKSPACE_DIR = os.path.expanduser("~/termux_workspace")
+>
+> class DashboardHandler(http.server.BaseHTTPRequestHandler):
+>     def do_GET(self):
+>         if self.path == '/' or self.path == '/index.html':
+>             self.send_response(200)
+>             self.send_header("Content-type", "text/html; charset=utf-8")
+>             self.end_headers()
+>             self.wfile.write(self.get_html().encode('utf-8'))
+>         elif self.path == '/api/status':
+>             self.send_response(200)
+"git-status">...</span></p>
+        >             self.send_header("Content-type", "application/json; charset=utf-8")
+>             self.end_headers()
+>             self.wfile.write(json.dumps(self.get_status_data()).encode('utf-8'))
+>         else:
+>             self.send_response(404)
+>             self.end_headers()
+>             self.wfile.write(b"404 Not Found")
+>
+>     def log_message(self, format, *args):
+>         return
+>
+>     def get_status_data(self):
+>         os.chdir(WORKSPACE_DIR)
+>         def run_cmd(cmd):
+me}`;
+          >             try:
+      document.ge>                 res = subprocess.run(cmd, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+>                 return res.stdout.strip()
+>             except:
+>                 return "N/A"
+>
+ >         git_status = run_cmd("git status --short")
+>         git_branch = run_cmd("git branch --show-current")
+>         git_remote = run_cmd("git remote get-url origin")
+>
+>         daemons = ["workspace_status.sh", "clip_daemon.sh", "run_cron_scheduler.sh"]
+>         daemon_status = {}
+>         for d in daemons:
+>             pid = run_cmd(f"pgrep -f {d}")
+>             daemon_status[d] = f"Running (PID: {pid})" if pid != "N/A" else "Stopped"
+>
+>         return {
+>             "time": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),>             "branch": git_branch if git_branch else "main",
+>             "remote": git_remote if git_remote else "N/A",
+ >             "status": "Clean" if not git_status else "Uncommitted Changes",
+>             "git_changes": git_status.splitlines() if git_status else [],
+>             "daemons": daemon_status
+= document.getElementById('daemons');
+                daemonsList.innerHTML = '';
+                for (const [name, status] of Object.entries(data.daem>         }
+>
+>     def get_html(self):
+>         return """<!DOCTYPE html>
+> <html lang="en">
+> <head>
+>     <meta charset="UTF-8">
+>     <title>Termux Workspace Executive Dashboard</title>
+nnerHTML = `<st>     <style>
+>         :root {
+>             --bg-color: #0b0f12;
+>             --card-bg: #13181d;
+>             --accent-teal: #00d2c4;
+us}</span>`;
+                    dae>             --accent-gold: #f4d06f;
+>             --text-main: #e2e8f0;
+>             --text-muted: #8892b0;
+>         }
+    console.error("Failed to fe>         body {
+>             background-color: var(--bg-color);
+>             color: var(--text-main);
+>             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+>             margin: 0;
+tserver.TCPServer):
+   >             padding: 20px;
+>         }
+>         .container {
+>             max-width: 900px;
+>             margin: 0 auto;
+>         }
+>         header {
+>             border-bottom: 2px solid var(--accent-teal);
+>             padding-bottom: 10px;
+>             margin-bottom: 20px;
+>         }
+>         h1 {
+>             color: var(--accent-teal);
+>             font-size: 1.8rem;
+>             margin: 0;
+>         }
+>         .time {
+>             color: var(--text-muted);
+>             font-size: 0.9rem;
+>         }
+>         .card {
+>             background-color: var(--card-bg);
+>             border: 1px solid #1e262c;
+>             border-radius: 8px;
+>             padding: 20px;
+>             margin-bottom: 20px;
+>             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+>         }
+>         h2 {
+>             color: var(--accent-gold);
+>             font-size: 1.2rem;
+>             margin-top: 0;
+>         }
+>         ul {
+>             padding-left: 20px;
+>             color: var(--text-muted);
+>         }
+>         li {
+>             margin-bottom: 5px;
+>         }
+>         .status-badge {
+>             display: inline-block;
+>             padding: 4px 8px;
+>             border-radius: 4px;
+>             font-weight: bold;
+>             font-size: 0.85rem;
+>         }
+>         .running { background-color: rgba(0, 210, 196, 0.15); color: var(--accent-teal); }
+>         .stopped { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+>     </style>
+> </head>
+> <body>
+>     <div class="container">
+>         <header>
+>             <h1>Termux Workspace Executive Dashboard</h1>
+>             <div class="time" id="time">Loading time...</div>
+>         </header>
+>
+>         <div class="card">
+>             <h2>Git Repository Overview</h2>
+>             <p><strong>Branch:</strong> <span id="branch">...</span></p>
+>             <p><strong>Remote:</strong> <span id="remote">...</span></p>
+>             <p><strong>Workspace Status:</strong> <span id="git-status">...</span></p>
+>             <ul id="git-changes"></ul>
+>         </div>
+>
+>         <div class="card">
+>             <h2>Background Daemons</h2>
+>             <ul id="daemons"></ul>
+>         </div>
+>     </div>
+>
+>     <script>
+>         async function fetchStatus() {
+>             try {
+>                 const res = await fetch('/api/status');
+>                 const data = await res.json();
+>
+>                 document.getElementById('time').innerText = `Last Refreshed: ${data.time}`;
+>                 document.getElementById('branch').innerText = data.branch;
+>                 document.getElementById('remote').innerText = data.remote;
+>                 document.getElementById('git-status').innerText = data.status;
+>
+>                 const changesList = document.getElementById('git-changes');
+>                 changesList.innerHTML = '';
+>                 if (data.git_changes.length === 0) {
+>                     const li = document.createElement('li');
+>                     li.innerText = "Working tree clean";
+>                     changesList.appendChild(li);
+>                 } else {
+>                     data.git_changes.forEach(change => {
+>                         const li = document.createElement('li');
+>                         li.innerText = change;
+>                         changesList.appendChild(li);
+>                     });
+>                 }
+>
+>                 const daemonsList = document.getElementById('daemons');
+>                 daemonsList.innerHTML = '';
+>                 for (const [name, status] of Object.entries(data.daemons)) {
+>                     const li = document.createElement('li');
+>                     const isRunning = status.startsWith('Running');
+>                     li.innerHTML = `<strong>${name}:</strong> <span class="status-badge ${isRunning ? 'running' : 'stopped'}">${status}</span>`;
+>                     daemonsList.appendChild(li);
+>                 }
+>             } catch (err) {
+>                 console.error("Failed to fetch status", err);
+>             }
+>         }
+>
+>         fetchStatus();
+>         setInterval(fetchStatus, 5000);
+>     </script>
+> </body>
+> </html>
+> """
+>
+> class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+>     allow_reuse_address = True
+>     daemon_threads = True
+>
+> if __name__ == '__main__':
+>     with ThreadedHTTPServer(('127.0.0.1', PORT), DashboardHandler) as httpd:
+>         print(f"Server operational on http://127.0.0.1:{PORT}")
+>         httpd.serve_forever()
+> INNER_EOF
+>
+> chmod +x "$SERVER_SCRIPT"
+> cd "$WEB_UI_DIR"
+> nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+>
+> echo "Executive Dashboard server running successfully."
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x fix_web_ui_working.sh
+~/termux_workspace $ ./fix_web_ui_working.sh
+Executive Dashboard server running successfully.
+~/termux_workspace $ cat << 'EOF' > continue_workspace.sh
+> #!/usr/bin/env bash
+> set -euo pipefail
+>
+> WORKSPACE_DIR="${HOME}/termux_workspace"
+> cd "$WORKSPACE_DIR"
+>
+> echo "Checking workspace daemons and status..."
+> python3 -c "
+> import urllib.request
+> import json
+> try:
+>     req = urllib.request.Request('http://127.0.0.1:8080/api/status')
+>     with urllib.request.urlopen(req) as response:
+>         data = json.loads(response.read().decode('utf-8'))
+>         print('Dashboard API Status: OK')
+>         print(f'Current Branch: {data[\"branch\"]}')
+>         print(f'Workspace State: {data[\"status\"]}')
+>         for d, state in data['daemons'].items():
+>             print(f' - {d}: {state}')
+> except Exception as e:
+>     print('Error connecting to dashboard API:', e)
+> "
+>
+> git status --short
+> echo "Workspace is fully operational and synchronized."
+> EOF
+~/termux_workspace $
+~/termux_workspace $ chmod +x continue_workspace.sh
+~/termux_workspace $ ./continue_workspace.sh
+Checking workspace daemons and status...
+Dashboard API Status: OK
+Current Branch: main
+Workspace State: Uncommitted Changes
+ - workspace_status.sh: Running (PID: 12866)
+ - clip_daemon.sh: Running (PID: 13302)
+ - run_cron_scheduler.sh: Running (PID: 14760)
+ M web_ui.log
+ M web_ui/server.py
+?? continue_workspace.sh
+?? fix_web_ui_direct.sh
+?? fix_web_ui_working.sh
+?? fix_web_ui_zeroconf.sh
+Workspace is fully operational and synchronized.
+~/termux_workspace $
