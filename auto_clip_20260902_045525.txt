@@ -1,0 +1,31 @@
+ EXECUTIVE SPECTRUM - ADVANCED TUI DASHBOARD
+
+  ACTIVE BACKGROUND PROCESSES:
+    - workspace_daemon.py: RUNNING
+    - web_ui_dashboard.py: STOPPED
+    - workspace_health_monitor.py: STOPPED
+    - clip_daemon.sh: RUNNING
+
+  RECENT SYSTEM LOGS:
+    [2026-09-02 04:43:53] [PLUGIN] Initialized plugin directories
+    [2026-09-02 04:44:23] [BUS] Initialized named pipe event bus
+    [2026-09-02 04:45:32] [BACKUP] Repository successfully synchr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ Press 'q' to exit | Press 'r' to refresh
