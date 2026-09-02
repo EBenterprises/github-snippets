@@ -1,0 +1,59 @@
+cat << 'EOF' > workspace_telemetry_analyzer.py
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Telemetry & Analytics Engine
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import os
+import sys
+import json
+import datetime
+
+HOME = os.environ.get("HOME", "/data/data/com.termux/files/home")
+TELEMETRY_LOG = os.path.join(HOME, ".workspace_telemetry.jsonl")
+DAEMON_LOG = os.path.join(HOME, ".workspace_daemon.log")
+
+def analyze_telemetry():
+    print("=" * 60)
+    print(" EXECUTIVE SPECTRUM - TELEMETRY & ANALYTICS REPORT")
+    print(" EB Enterprises | Automated Terminal Environment")
+    print("=" * 60)
+    
+    events_count = 0
+    healthy_count = 0
+    if os.path.exists(TELEMETRY_LOG):
+        with open(TELEMETRY_LOG, "r") as f:
+            for line in f:
+                try:
+                    data = json.loads(line.strip())
+                    events_count += 1
+                    if data.get("status") == "HEALTHY":
+                        healthy_count += 1
+                except Exception:
+                    pass
+        ratio = (healthy_count / events_count) * 100 if events_count > 0 else 0.0
+        print(f" [+] Total Telemetry Records Captured: {events_count}")
+        print(f" [+] Healthy Heartbeat Ratio: {ratio:.1f}%")
+    else:
+        print(" [!] Telemetry log not found yet.")
+
+    print("\n[+] Recent Daemon Log Entries:")
+    if os.path.exists(DAEMON_LOG):
+        with open(DAEMON_LOG, "r") as f:
+            lines = f.readlines()[-8:]
+            for line in lines:
+                print(f"   {line.strip()}")
+    else:
+        print(" [!] Daemon log not found.")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    analyze_telemetry()
+EOF
+
+chmod +x workspace_telemetry_analyzer.py
+python3 workspace_telemetry_analyzer.py
+git add workspace_telemetry_analyzer.py
+git commit -m "feat: implement executive spectrum telemetry and analytics engine"
+git push origin main
