@@ -1,0 +1,6 @@
+cat << 'EOF' > status_check.sh
+#!/usr/bin/env bash
+echo "Workspace status operational."
+EOF
+chmod +x status_check.sh
+./status_check.sh
