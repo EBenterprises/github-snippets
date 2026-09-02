@@ -1,0 +1,5 @@
+git stash
+git fetch origin
+git pull origin main --rebase
+git stash drop
+git push origin main
