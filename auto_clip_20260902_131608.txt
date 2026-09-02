@@ -1,0 +1,60 @@
+cat << 'EOF' > workspace_plugins.py
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Plugin & Extension Manager
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import os
+import sys
+import subprocess
+
+HOME = os.environ.get("HOME", "/data/data/com.termux/files/home")
+WORKSPACE_DIR = os.path.join(HOME, "termux_workspace")
+PLUGIN_DIR = os.path.join(WORKSPACE_DIR, "plugins")
+
+def init_plugins():
+    os.makedirs(PLUGIN_DIR, exist_ok=True)
+
+def list_plugins():
+    init_plugins()
+    plugins = [f for f in os.listdir(PLUGIN_DIR) if f.endswith(".sh") or f.endswith(".py")] if os.path.exists(PLUGIN_DIR) else []
+    print("=" * 60)
+    print(" EXECUTIVE SPECTRUM - REGISTERED PLUGINS")
+    print("=" * 60)
+    if not plugins:
+        print(" [!] No custom plugins found in plugins/ directory.")
+    for p in plugins:
+        print(f"   - {p}")
+    print("=" * 60)
+
+def run_plugin(plugin_name, args):
+    plugin_path = os.path.join(PLUGIN_DIR, plugin_name)
+    if not os.path.exists(plugin_path):
+        print(f"[-] Plugin '{plugin_name}' not found.")
+        sys.exit(1)
+    
+    if plugin_path.endswith(".py"):
+        os.execv(sys.executable, [sys.executable, plugin_path] + args)
+    elif plugin_path.endswith(".sh"):
+        os.execv("/bin/bash", ["bash", plugin_path] + args)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        list_plugins()
+        sys.exit(0)
+        
+    cmd = sys.argv[1]
+    if cmd == "list":
+        list_plugins()
+    elif cmd == "run" and len(sys.argv) >= 3:
+        run_plugin(sys.argv[2], sys.argv[3:])
+    else:
+        list_plugins()
+EOF
+
+chmod +x workspace_plugins.py
+python3 workspace_plugins.py list
+git add workspace_plugins.py
+git commit -m "feat: implement executive spectrum plugin and extension manager"
+git push origin main
