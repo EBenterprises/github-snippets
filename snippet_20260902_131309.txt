@@ -1,0 +1,31 @@
+cat << 'EOF' > clone_auth.sh
+#!/bin/bash
+
+# Configuration
+REPO_NAME="the-plug_v3"
+CRED_FILE="$HOME/.git-credentials"
+
+echo "Checking stored credential sources..."
+
+# Attempt to locate credentials from git credential store, environment, or config files
+if [ -f "$CRED_FILE" ]; then
+  echo "Found local git credentials store."
+  git credential fill << 'CREDS'
+protocol=https
+host=github.com
+CREDS
+elif [ -n "$GITHUB_TOKEN" ]; then
+  echo "Using environment GITHUB_TOKEN..."
+  git clone "https://$GITHUB_TOKEN@github.com/$USER/$REPO_NAME.git"
+elif [ -n "$GH_TOKEN" ]; then
+  echo "Using environment GH_TOKEN..."
+  git clone "https://$GH_TOKEN@github.com/$USER/$REPO_NAME.git"
+else
+  echo "No active auth token or stored credential profile was automatically detected in this shell session."
+  echo "Please export your token via: export GITHUB_TOKEN='your_token'"
+  echo "Then re-run this script."
+fi
+EOF
+
+chmod +x clone_auth.sh
+./clone_auth.sh
