@@ -1,0 +1,32 @@
+cat << 'EOF' > fix_web_ui_host.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_DIR="${HOME}/termux_workspace"
+WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+
+pkill -f "web_ui/server.py" || true
+
+python3 -c "
+import re
+
+path = '${SERVER_SCRIPT}'
+with open(path, 'r') as f:
+    content = f.read()
+
+content = re.sub(r'socketserver\.TCPServer\(\(\"\", PORT\)', 'socketserver.TCPServer((\"127.0.0.1\", PORT)', content)
+
+with open(path, 'w') as f:
+    f.write(content)
+"
+
+cd "$WEB_UI_DIR"
+nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+
+echo "Web Server restarted explicitly binding to 127.0.0.1:8080."
+echo "Check logs at: ${WORKSPACE_DIR}/web_ui.log"
+EOF
+
+chmod +x fix_web_ui_host.sh
+./fix_web_ui_host.sh
