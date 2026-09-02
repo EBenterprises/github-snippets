@@ -1,0 +1,89 @@
+cat << 'EOF' > web_ui_dashboard.py
+#!/usr/bin/env python3
+import http.server
+import socketserver
+import json
+import os
+import subprocess
+
+PORT = 8080
+WORKSPACE_DIR = os.path.expanduser('~/termux_workspace')
+
+class ExecutiveHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == '/api/status':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            
+            health_file = os.path.join(WORKSPACE_DIR, 'health_report.json')
+            data = {}
+            if os.path.exists(health_file):
+                with open(health_file, 'r') as f:
+                    data = json.load(f)
+            else:
+                data = {"status": "running", "message": "Health report generating..."}
+                
+            self.wfile.write(json.dumps(data).encode('utf-8'))
+        elif self.path == '/':
+            self.send_response(200)
+            self.send_header('Content-type', 'text/html')
+            self.end_headers()
+            html = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Executive Spectrum Dashboard</title>
+                <style>
+                    body { background: #0b0f19; color: #e2e8f0; font-family: monospace; padding: 40px; }
+                    h1 { color: #38bdf8; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+                    .card { background: #1e293b; border: 1px solid #334155; padding: 20px; border-radius: 8px; margin-top: 20px; }
+                    pre { color: #34d399; }
+                </style>
+            </head>
+            <body>
+                <h1>Executive Spectrum Workspace Dashboard</h1>
+                <div class="card">
+                    <h3>Live System Matrix</h3>
+                    <pre id="status">Loading metrics...</pre>
+                </div>
+                <script>
+                    async function fetchStatus() {
+                        const res = await fetch('/api/status');
+                        const data = await res.json();
+                        document.getElementById('status').innerText = JSON.stringify(data, null, 2);
+                    }
+                    fetchStatus();
+                    setInterval(fetchStatus, 5000);
+                </script>
+            </body>
+            </html>
+            """
+            self.wfile.write(html.encode('utf-8'))
+        else:
+            super().do_GET()
+
+if __name__ == '__main__':
+    os.chdir(WORKSPACE_DIR)
+    with socketserver.TCPServer(("", PORT), ExecutiveHandler) as httpd:
+        print(f"[+] Executive Web UI Dashboard active at http://localhost:{PORT}")
+        httpd.serve_forever()
+EOF
+
+chmod +x web_ui_dashboard.py
+
+# Launch web server in background if not running
+if ! pgrep -f "web_ui_dashboard.py" > /dev/null; then
+    nohup python3 web_ui_dashboard.py > /dev/null 2>&1 &
+    echo "[+] Executive Web UI server started in background on port 8080."
+else
+    echo "[!] Executive Web UI server is already active."
+fi
+
+git add .
+if ! git diff --cached --quiet; then
+    git commit -m "Ecosystem expansion: Deployed embedded Executive Web UI dashboard server $(date '+%Y-%m-%d %H:%M:%S')"
+    git push origin main || true
+fi
+
+echo "=== Executive Web UI Dashboard Deployed & Synchronized ==="
