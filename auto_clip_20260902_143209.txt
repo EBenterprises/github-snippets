@@ -1,0 +1,2 @@
+./workspace_master_pipeline.sh
+./exec-spec orchestrate status
