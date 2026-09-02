@@ -18,23 +18,8 @@ if (!fs.existsSync(path.dirname(DATA_FILE))) {
 const readData = (file) => fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
 const writeData = (file, data) => fs.writeFileSync(file, JSON.stringify(data, null, 2));
 
-app.post('/api/register', (req, res) => {
-    const { username, email, password } = req.body;
-    const users = readData(USERS_FILE);
-
-    if (users.find(u => u.email === email)) {
-        return res.status(400).json({ success: false, message: 'User already exists.' });
-    }
-
-    const newUser = { id: Date.now(), username, email, password };
-    users.push(newUser);
-    writeData(USERS_FILE, users);
-
-    res.json({ success: true, message: 'Account created successfully!', userId: newUser.id });
-});
-
 app.post('/api/save-design', (req, res) => {
-    const { userId, designName, colors, materials } = req.body;
+    const { userId, designName, colors } = req.body;
     const designs = readData(DATA_FILE);
 
     const newDesign = {
@@ -42,7 +27,6 @@ app.post('/api/save-design', (req, res) => {
         userId: userId || 'anonymous',
         designName: designName || 'Untitled Custom',
         colors,
-        materials,
         createdAt: new Date().toISOString()
     };
 
@@ -50,11 +34,6 @@ app.post('/api/save-design', (req, res) => {
     writeData(DATA_FILE, designs);
 
     res.json({ success: true, message: 'Sneaker design saved successfully!', designId: newDesign.designId });
-});
-
-app.get('/api/designs', (req, res) => {
-    const designs = readData(DATA_FILE);
-    res.json({ success: true, designs });
 });
 
 app.listen(PORT, () => {

@@ -1,0 +1,91 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaker Customizer App</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #121212; color: #fff; margin: 0; padding: 20px; }
+        .canvas-container { width: 340px; height: 220px; margin: 20px auto; background: #1e1e1e; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #333; }
+        .controls { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 300px; margin-left: auto; margin-right: auto; }
+        .control-group { display: flex; justify-content: space-between; width: 100%; align-items: center; }
+        button { padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; width: 100%; }
+        input[type="color"] { border: none; width: 40px; height: 30px; cursor: pointer; background: none; }
+    </style>
+</head>
+<body>
+    <h1>Custom Kicks Creator</h1>
+    <div class="canvas-container">
+        <!-- Realistic Sneaker Profile SVG -->
+        <svg viewBox="0 0 300 180" width="280" height="160" id="shoe-icon">
+            <!-- Sole -->
+            <path id="shoe-sole" fill="#f3f4f6" d="M15 145 C 50 148, 250 148, 285 140 C 295 137, 295 155, 280 158 C 240 162, 50 162, 12 158 C 2 155, 5 144, 15 145 Z"/>
+            <!-- Mudguard / Lower Overlay -->
+            <path id="shoe-mudguard" fill="#e5e7eb" d="M20 135 C 40 135, 70 142, 95 142 C 140 142, 220 140, 260 130 C 275 125, 275 110, 270 110 C 250 110, 230 120, 200 120 C 140 120, 80 132, 25 132 C 18 132, 15 138, 20 135 Z"/>
+            <!-- Main Upper Body -->
+            <path id="shoe-base" fill="#ffffff" d="M35 110 C 50 100, 75 75, 110 75 C 130 75, 150 90, 180 90 C 210 90, 240 70, 260 95 C 270 110, 265 128, 250 130 C 200 135, 100 135, 35 130 C 25 128, 25 115, 35 110 Z"/>
+            <!-- Swoosh / Side Logo -->
+            <path id="shoe-swoosh" fill="#111827" d="M90 100 C 120 105, 170 125, 235 105 C 220 115, 170 128, 120 118 C 105 115, 95 110, 90 100 Z"/>
+            <!-- Laces & Eyestay Area -->
+            <path id="shoe-laces" fill="#9ca3af" d="M110 75 L 140 50 C 150 48, 175 60, 185 70 L 155 90 Z"/>
+        </svg>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Upper Base:</label>
+            <input type="color" id="basePicker" value="#ffffff">
+        </div>
+        <div class="control-group">
+            <label>Overlay / Mudguard:</label>
+            <input type="color" id="mudguardPicker" value="#e5e7eb">
+        </div>
+        <div class="control-group">
+            <label>Swoosh:</label>
+            <input type="color" id="swooshPicker" value="#111827">
+        </div>
+        <div class="control-group">
+            <label>Sole:</label>
+            <input type="color" id="solePicker" value="#f3f4f6">
+        </div>
+        <button onclick="saveDesign()">Save Design</button>
+    </div>
+
+    <script>
+        const basePicker = document.getElementById('basePicker');
+        const mudguardPicker = document.getElementById('mudguardPicker');
+        const swooshPicker = document.getElementById('swooshPicker');
+        const solePicker = document.getElementById('solePicker');
+
+        const shoeBase = document.getElementById('shoe-base');
+        const shoeMudguard = document.getElementById('shoe-mudguard');
+        const shoeSwoosh = document.getElementById('shoe-swoosh');
+        const shoeSole = document.getElementById('shoe-sole');
+
+        basePicker.addEventListener('input', (e) => shoeBase.style.fill = e.target.value);
+        mudguardPicker.addEventListener('input', (e) => shoeMudguard.style.fill = e.target.value);
+        swooshPicker.addEventListener('input', (e) => shoeSwoosh.style.fill = e.target.value);
+        solePicker.addEventListener('input', (e) => shoeSole.style.fill = e.target.value);
+
+        async function saveDesign() {
+            const response = await fetch('/api/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    designName: 'My Custom Sneaker', 
+                    colors: { 
+                        base: basePicker.value, 
+                        mudguard: mudguardPicker.value,
+                        swoosh: swooshPicker.value, 
+                        sole: solePicker.value 
+                    } 
+                })
+            });
+            const result = await response.json();
+            alert(result.message);
+        }
+    </script>
+</body>
+</html>
+EOF

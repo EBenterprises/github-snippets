@@ -1,0 +1,74 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaker Customizer App</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #121212; color: #fff; margin: 0; padding: 20px; }
+        .canvas-container { width: 300px; height: 300px; margin: 20px auto; background: #1e1e1e; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 1px solid #333; }
+        .controls { margin-top: 20px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .control-group { display: flex; align-items: center; gap: 10px; }
+        button { padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px;}
+    </style>
+</head>
+<body>
+    <h1>Custom Kicks Creator</h1>
+    <div class="canvas-container">
+        <svg viewBox="0 0 24 24" width="140" height="140" id="shoe-icon">
+            <!-- Multi-part Sneaker SVG Template -->
+            <path id="shoe-base" fill="#ffffff" d="M21 16v-2l-3-5l-4-1l-2-3H9L6 6H3v2h2l2 4l-2 3v1h15z"/>
+            <path id="shoe-swoosh" fill="#4f46e5" d="M9 9l4 2l-2 2z"/>
+            <path id="shoe-laces" fill="#a5b4fc" d="M8 7l2-1l1 2z"/>
+        </svg>
+    </div>
+    <div class="controls">
+        <div class="control-group">
+            <label>Base Color:</label>
+            <input type="color" id="basePicker" value="#ffffff">
+        </div>
+        <div class="control-group">
+            <label>Swoosh Color:</label>
+            <input type="color" id="swooshPicker" value="#4f46e5">
+        </div>
+        <div class="control-group">
+            <label>Laces Color:</label>
+            <input type="color" id="lacesPicker" value="#a5b4fc">
+        </div>
+        <button onclick="saveDesign()">Save Design</button>
+    </div>
+
+    <script>
+        const basePicker = document.getElementById('basePicker');
+        const swooshPicker = document.getElementById('swooshPicker');
+        const lacesPicker = document.getElementById('lacesPicker');
+
+        const shoeBase = document.getElementById('shoe-base');
+        const shoeSwoosh = document.getElementById('shoe-swoosh');
+        const shoeLaces = document.getElementById('shoe-laces');
+
+        basePicker.addEventListener('input', (e) => shoeBase.style.fill = e.target.value);
+        swooshPicker.addEventListener('input', (e) => shoeSwoosh.style.fill = e.target.value);
+        lacesPicker.addEventListener('input', (e) => shoeLaces.style.fill = e.target.value);
+
+        async function saveDesign() {
+            const response = await fetch('/api/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    designName: 'My Custom Sneaker', 
+                    colors: { 
+                        base: basePicker.value, 
+                        swoosh: swooshPicker.value, 
+                        laces: lacesPicker.value 
+                    } 
+                })
+            });
+            const result = await response.json();
+            alert(result.message);
+        }
+    </script>
+</body>
+</html>
+EOF

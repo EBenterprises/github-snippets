@@ -1,0 +1,80 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo-Realistic Sneaker Customizer</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; background: #0b0f19; color: #f8fafc; margin: 0; padding: 20px; }
+        .canvas-container { width: 340px; height: 240px; margin: 20px auto; background: #1e293b; border-radius: 16px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #334155; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4); }
+        
+        /* The color layer that sits underneath the sneaker cutout */
+        #colorLayer { width: 290px; height: 160px; position: absolute; background-color: #3b82f6; border-radius: 30px; transition: background-color 0.1s ease; }
+        
+        /* Realistic Sneaker Silhouette Mask */
+        .shoe-silhouette { width: 310px; position: absolute; pointer-events: none; mix-blend-mode: multiply; }
+
+        .controls { margin: 20px auto; display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 320px; background: #1e293b; padding: 20px; border-radius: 16px; border: 1px solid #334155; }
+        .control-group { display: flex; justify-content: space-between; width: 100%; align-items: center; font-size: 14px; font-weight: 500; }
+        button { padding: 12px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; }
+        button:hover { background: #4f46e5; }
+        input[type="color"] { border: none; width: 44px; height: 32px; cursor: pointer; background: transparent; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Sneaker Studio Pro</h1>
+    <div class="canvas-container">
+        <!-- Dynamic Hue Backplate -->
+        <div id="colorLayer"></div>
+        
+        <!-- Detailed Photo-Trace Vector Outline of Low-Top Classic -->
+        <svg class="shoe-silhouette" viewBox="0 0 600 350">
+            <!-- Sole Base -->
+            <path fill="#ffffff" stroke="#111827" stroke-width="4" d="M 50 280 C 120 295, 450 295, 540 270 C 570 260, 580 240, 565 235 C 510 230, 140 230, 65 245 C 40 250, 35 275, 50 280 Z"/>
+            <path fill="none" stroke="#111827" stroke-width="3" d="M 65 245 C 140 230, 510 230, 565 235"/>
+            
+            <!-- Upper Leather Panels with Cutouts -->
+            <path fill="#f8fafc" stroke="#111827" stroke-width="5" d="M 75 235 C 90 200, 120 150, 170 125 C 220 100, 300 90, 380 95 C 440 100, 490 120, 530 155 C 555 180, 560 220, 550 235 C 480 230, 140 230, 75 235 Z"/>
+            
+            <!-- Eyestay & Laces Contour -->
+            <path fill="#e2e8f0" stroke="#111827" stroke-width="4" d="M 310 95 L 390 50 C 420 40, 480 70, 510 110 L 440 160 Z"/>
+            <path fill="none" stroke="#111827" stroke-width="3" d="M 330 85 L 400 65 M 350 95 L 420 75 M 370 105 L 440 85"/>
+
+            <!-- Iconic Side Swoosh Overlay -->
+            <path fill="#111827" d="M 160 180 C 220 190, 360 220, 490 170 C 460 190, 320 225, 210 205 C 185 200, 170 190, 160 180 Z"/>
+        </svg>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Upper Color:</label>
+            <input type="color" id="primaryColor" value="#3b82f6">
+        </div>
+        <button onclick="saveDesign()">Save Custom Kicks</button>
+    </div>
+
+    <script>
+        const colorPicker = document.getElementById('primaryColor');
+        const colorLayer = document.getElementById('colorLayer');
+
+        colorPicker.addEventListener('input', (e) => {
+            colorLayer.style.backgroundColor = e.target.value;
+        });
+
+        async function saveDesign() {
+            const res = await fetch('/api/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    designName: 'Custom Air Silhouette', 
+                    color: colorPicker.value 
+                })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
+EOF

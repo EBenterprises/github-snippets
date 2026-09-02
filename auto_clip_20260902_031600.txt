@@ -1,0 +1,98 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Custom Sneaker Lab</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .canvas-container { width: 360px; height: 240px; margin: 20px auto; background: #1e293b; border-radius: 16px; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3); border: 1px solid #334155; }
+        .controls { margin: 20px auto; display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 320px; background: #1e293b; padding: 20px; border-radius: 16px; border: 1px solid #334155; }
+        .control-group { display: flex; justify-content: space-between; width: 100%; align-items: center; font-size: 14px; font-weight: 500; }
+        button { padding: 12px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; transition: background 0.2s; }
+        button:hover { background: #4f46e5; }
+        input[type="color"] { border: none; width: 44px; height: 32px; cursor: pointer; background: transparent; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Air Customizer</h1>
+    <div class="canvas-container">
+        <!-- Professional Sneaker Vector Silhouette -->
+        <svg viewBox="0 0 500 300" width="340" height="200" id="shoe-icon">
+            <!-- Outsole (Bottom) -->
+            <path id="shoe-sole" fill="#e2e8f0" d="M 45 235 C 100 242, 350 242, 435 225 C 465 218, 475 205, 465 200 C 420 195, 120 195, 40 205 C 25 207, 30 232, 45 235 Z"/>
+            <!-- Midsole Stitching Line / Base Platform -->
+            <path id="shoe-midsole" fill="#f8fafc" d="M 40 205 C 120 195, 420 195, 465 200 C 475 190, 460 180, 440 180 C 350 180, 100 180, 45 185 C 30 187, 30 200, 40 205 Z"/>
+            <!-- Mudguard / Toe Overlay -->
+            <path id="shoe-mudguard" fill="#cbd5e1" d="M 35 180 C 60 180, 90 170, 115 145 C 125 135, 120 120, 110 120 C 85 120, 50 150, 30 170 C 22 178, 28 181, 35 180 Z"/>
+            <!-- Main Upper Quarter Panel -->
+            <path id="shoe-base" fill="#ffffff" d="M 115 145 C 150 110, 200 85, 260 85 C 300 85, 340 100, 390 115 C 430 128, 455 155, 445 178 C 420 180, 150 180, 115 145 Z"/>
+            <!-- Eyestay / Lacing Panel -->
+            <path id="shoe-eyestay" fill="#94a3b8" d="M 230 85 L 290 50 C 310 45, 350 65, 370 85 L 310 125 Z"/>
+            <!-- Iconic Side Swoosh -->
+            <path id="shoe-swoosh" fill="#0f172a" d="M 130 130 C 180 135, 270 160, 395 125 C 370 140, 260 168, 170 150 C 150 146, 138 138, 130 130 Z"/>
+            <!-- Collar / Ankle Padding -->
+            <path id="shoe-collar" fill="#e2e8f0" d="M 370 85 C 410 85, 440 100, 445 125 C 440 110, 410 90, 370 85 Z"/>
+        </svg>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Upper Panel:</label>
+            <input type="color" id="basePicker" value="#ffffff">
+        </div>
+        <div class="control-group">
+            <label>Mudguard:</label>
+            <input type="color" id="mudguardPicker" value="#cbd5e1">
+        </div>
+        <div class="control-group">
+            <label>Swoosh:</label>
+            <input type="color" id="swooshPicker" value="#0f172a">
+        </div>
+        <div class="control-group">
+            <label>Eyestay / Laces:</label>
+            <input type="color" id="eyestayPicker" value="#94a3b8">
+        </div>
+        <div class="control-group">
+            <label>Midsole:</label>
+            <input type="color" id="midsolePicker" value="#f8fafc">
+        </div>
+        <button onclick="saveDesign()">Save Design</button>
+    </div>
+
+    <script>
+        const basePicker = document.getElementById('basePicker');
+        const mudguardPicker = document.getElementById('mudguardPicker');
+        const swooshPicker = document.getElementById('swooshPicker');
+        const eyestayPicker = document.getElementById('eyestayPicker');
+        const midsolePicker = document.getElementById('midsolePicker');
+
+        basePicker.addEventListener('input', (e) => document.getElementById('shoe-base').style.fill = e.target.value);
+        mudguardPicker.addEventListener('input', (e) => document.getElementById('shoe-mudguard').style.fill = e.target.value);
+        swooshPicker.addEventListener('input', (e) => document.getElementById('shoe-swoosh').style.fill = e.target.value);
+        eyestayPicker.addEventListener('input', (e) => document.getElementById('shoe-eyestay').style.fill = e.target.value);
+        midsolePicker.addEventListener('input', (e) => document.getElementById('shoe-midsole').style.fill = e.target.value);
+
+        async function saveDesign() {
+            const response = await fetch('/api/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    designName: 'Custom Air Silhouette', 
+                    colors: { 
+                        base: basePicker.value, 
+                        mudguard: mudguardPicker.value,
+                        swoosh: swooshPicker.value, 
+                        eyestay: eyestayPicker.value,
+                        midsole: midsolePicker.value
+                    } 
+                })
+            });
+            const result = await response.json();
+            alert(result.message);
+        }
+    </script>
+</body>
+</html>
+EOF

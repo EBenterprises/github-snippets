@@ -1,0 +1,2 @@
+cd ~/new-sneaker-app
+node server.js

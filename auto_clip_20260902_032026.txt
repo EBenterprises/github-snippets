@@ -1,0 +1,90 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoom & Customize Sneaker Studio</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .canvas-wrapper { width: 360px; height: 260px; margin: 20px auto; background: #1e293b; border-radius: 16px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #334155; }
+        
+        /* Zoomable & Tintable Sneaker Stage */
+        #renderStage { width: 300px; height: 180px; position: relative; transition: transform 0.1s ease; display: flex; align-items: center; justify-content: center; }
+        
+        #tintBox { width: 100%; height: 100%; position: absolute; background-color: #ffffff; border-radius: 12px; z-index: 1; }
+        .shoe-img { width: 100%; position: absolute; pointer-events: none; mix-blend-mode: multiply; z-index: 2; }
+        
+        /* Custom Text Tag Layer */
+        #customTextOverlay { position: absolute; z-index: 3; font-weight: 800; font-size: 22px; color: #0f172a; text-transform: uppercase; pointer-events: none; text-shadow: 0 1px 2px rgba(255,255,255,0.5); }
+
+        .controls { margin: 20px auto; display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 320px; background: #1e293b; padding: 20px; border-radius: 16px; border: 1px solid #334155; }
+        .control-group { display: flex; justify-content: space-between; width: 100%; align-items: center; font-size: 14px; }
+        button { padding: 12px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        input[type="color"], input[type="range"], input[type="text"] { border: none; padding: 6px; border-radius: 6px; background: #0f172a; color: #fff; font-size: 14px; }
+        input[type="color"] { width: 44px; height: 32px; cursor: pointer; background: transparent; }
+    </style>
+</head>
+<body>
+    <h1>Sneaker Customizer Pro</h1>
+    <div class="canvas-wrapper">
+        <div id="renderStage">
+            <div id="tintBox"></div>
+            <img class="shoe-img" src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=600&q=80" alt="Sneaker">
+            <div id="customTextOverlay">CUSTOM</div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Zoom View:</label>
+            <input type="range" id="zoomRange" min="0.5" max="1.5" step="0.1" value="1">
+        </div>
+        <div class="control-group">
+            <label>Colorway:</label>
+            <input type="color" id="shoeColor" value="#3b82f6">
+        </div>
+        <div class="control-group">
+            <label>Side Tag Text:</label>
+            <input type="text" id="textInput" value="CUSTOM" maxlength="8">
+        </div>
+        <button onclick="saveDesign()">Save Design</button>
+    </div>
+
+    <script>
+        const renderStage = document.getElementById('renderStage');
+        const zoomRange = document.getElementById('zoomRange');
+        const shoeColor = document.getElementById('shoeColor');
+        const tintBox = document.getElementById('tintBox');
+        const textInput = document.getElementById('textInput');
+        const customTextOverlay = document.getElementById('customTextOverlay');
+
+        zoomRange.addEventListener('input', (e) => {
+            renderStage.style.transform = `scale(${e.target.value})`;
+        });
+
+        shoeColor.addEventListener('input', (e) => {
+            tintBox.style.backgroundColor = e.target.value;
+        });
+
+        textInput.addEventListener('input', (e) => {
+            customTextOverlay.textContent = e.target.value || '';
+        });
+
+        async function saveDesign() {
+            const res = await fetch('/api/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    designName: textInput.value || 'Custom Kick', 
+                    color: shoeColor.value,
+                    zoom: zoomRange.value 
+                })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
+EOF

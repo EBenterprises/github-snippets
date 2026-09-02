@@ -1,0 +1,62 @@
+cat << 'EOF' > public/index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sneaker Customizer</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #0f172a; color: #f8fafc; margin: 0; padding: 20px; }
+        .canvas-container { width: 340px; height: 240px; margin: 20px auto; background: #1e293b; border-radius: 16px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #334155; }
+        
+        /* Container for color tinting */
+        #tintBox { width: 280px; height: 160px; position: absolute; background-color: #ffffff; border-radius: 12px; }
+        
+        /* Transparent Sneaker Outline/Photo Overlay */
+        .shoe-img { width: 300px; position: absolute; pointer-events: none; mix-blend-mode: multiply; }
+
+        .controls { margin: 20px auto; display: flex; flex-direction: column; align-items: center; gap: 12px; max-width: 320px; background: #1e293b; padding: 20px; border-radius: 16px; border: 1px solid #334155; }
+        .control-group { display: flex; justify-content: space-between; width: 100%; align-items: center; font-size: 14px; }
+        button { padding: 12px 20px; background: #6366f1; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; }
+        input[type="color"] { border: none; width: 44px; height: 32px; cursor: pointer; background: transparent; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Sneaker Lab</h1>
+    <div class="canvas-container">
+        <!-- Background Color Layer -->
+        <div id="tintBox"></div>
+        
+        <!-- Replace this URL with any direct link to a transparent sneaker silhouette PNG -->
+        <img class="shoe-img" src="https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?auto=format&fit=crop&w=600&q=80" alt="Sneaker">
+    </div>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label>Colorway:</label>
+            <input type="color" id="shoeColor" value="#3b82f6">
+        </div>
+        <button onclick="saveDesign()">Save Design</button>
+    </div>
+
+    <script>
+        const shoeColor = document.getElementById('shoeColor');
+        const tintBox = document.getElementById('tintBox');
+
+        shoeColor.addEventListener('input', (e) => {
+            tintBox.style.backgroundColor = e.target.value;
+        });
+
+        async function saveDesign() {
+            const res = await fetch('/api/save-design', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ designName: 'Custom Kick', color: shoeColor.value })
+            });
+            const data = await res.json();
+            alert(data.message);
+        }
+    </script>
+</body>
+</html>
+EOF

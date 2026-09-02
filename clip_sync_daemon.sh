@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
+<<<<<<< HEAD
+REPO_DIR="${HOME}/github-snippets"
+LAST_HASH=""
+=======
 
 REPO_DIR="${HOME}/github-snippets"
 LAST_HASH=""
 
+>>>>>>> 26acbdc (Automated Termux sync: 2026-09-02 03:00:59)
 get_clip() {
     if command -v termux-clipboard-get &>/dev/null; then
         termux-clipboard-get 2>/dev/null
@@ -14,9 +19,13 @@ get_clip() {
         pbpaste 2>/dev/null
     fi
 }
+<<<<<<< HEAD
+echo "[*] Clipboard auto-push daemon started. Watching for changes..."
+=======
 
 echo "[*] Clipboard auto-push daemon started. Watching for changes..."
 
+>>>>>>> 26acbdc (Automated Termux sync: 2026-09-02 03:00:59)
 while true; do
     CLIP_CONTENT=$(get_clip)
     if [ -n "$CLIP_CONTENT" ]; then
@@ -25,6 +34,13 @@ while true; do
             LAST_HASH="$CURRENT_HASH"
             TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
             FILENAME="${REPO_DIR}/auto_clip_${TIMESTAMP}.txt"
+<<<<<<< HEAD
+            echo "$CLIP_CONTENT" > "$FILENAME"
+            cd "$REPO_DIR"
+            git add "$FILENAME"
+            git commit -m "Automated clipboard sync: ${TIMESTAMP}"
+            git push origin main && echo "[✓] Auto-pushed clipboard content: ${FILENAME}" || echo "[!] Push failed."
+=======
             
             echo "$CLIP_CONTENT" > "$FILENAME"
             
@@ -32,6 +48,7 @@ while true; do
             git add "$FILENAME"
             git commit -m "Automated clipboard sync: ${TIMESTAMP}"
             git push origin main && echo "[✓] Auto-pushed clipboard content: ${FILENAME}" || echo "[!] Push failed. Ensure remote repository is configured."
+>>>>>>> 26acbdc (Automated Termux sync: 2026-09-02 03:00:59)
         fi
     fi
     sleep 3

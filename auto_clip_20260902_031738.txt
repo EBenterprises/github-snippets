@@ -1,0 +1,2 @@
+cd ~/new-sneaker-app
+npm install express
