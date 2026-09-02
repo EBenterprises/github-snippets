@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_DIR="${HOME}/termux_workspace"
+REPO_NAME="termux-workspace-backup"
+BRANCH_NAME="main"
+
+mkdir -p "$WORKSPACE_DIR"
+cd "$WORKSPACE_DIR"
+
+if [ ! -d ".git" ]; then
+    git init
+    git branch -M "$BRANCH_NAME"
+fi
+
+cat << 'EOF' > README.md
+# Termux Workspace Backup
+
+Automated backup and synchronization repository for local Termux workspace files, scripts, and configurations.
+EOF
+
+cat << 'EOF' > sync.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+if [ -n "$(git status --porcelain)" ]; then
+    git add .
+    git commit -m "Auto-sync: $(date '+%Y-%m-%d %H:%M:%S')"
+    git push origin main
+else
+    echo "No changes to sync."
+fi
+EOF
+
+chmod +x sync.sh
+
+git add .
+if git diff-index --quiet HEAD --; then
+    echo "Workspace repository initialized and clean."
+else
+    git commit -m "Automated setup: Initializing local Termux workspace repository"
+    echo "Workspace initialized and committed locally."
+fi
+
+echo "To link and push to GitHub, run:"
+echo "  git remote add origin https://github.com/YOUR_USERNAME/${REPO_NAME}.git"
+echo "  git push -u origin main"
