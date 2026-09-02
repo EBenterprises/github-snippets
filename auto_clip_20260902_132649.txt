@@ -1,0 +1,5 @@
+./exec-spec verify
+./exec-spec analytics
+./exec-spec orchestrate status
+python3 workspace_tests.py
+git status
