@@ -1,0 +1,66 @@
+cat << 'EOF' > workspace_plugin_loader.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_DIR="${HOME}/termux_workspace"
+cd "$WORKSPACE_DIR"
+
+echo "=== Initializing Modular Plugin Architecture & Extension Loader ==="
+
+mkdir -p plugins
+
+cat << 'PYPLUGIN' > plugin_loader.py
+#!/usr/bin/env python3
+import os
+import importlib.util
+import sys
+
+WORKSPACE_DIR = os.path.expanduser('~/termux_workspace')
+PLUGINS_DIR = os.path.join(WORKSPACE_DIR, 'plugins')
+
+def load_plugins():
+    if not os.path.exists(PLUGINS_DIR):
+        print("[*] No plugins directory found.")
+        return
+
+    loaded = []
+    for filename in os.listdir(PLUGINS_DIR):
+        if filename.endswith('.py') and filename != '__init__.py':
+            plugin_path = os.path.join(PLUGINS_DIR, filename)
+            plugin_name = filename[:-3]
+            try:
+                spec = importlib.util.spec_from_file_location(plugin_name, plugin_path)
+                mod = importlib.util.module_from_spec(spec)
+                sys.modules[plugin_name] = mod
+                spec.loader.exec_module(mod)
+                if hasattr(mod, 'register'):
+                    mod.register()
+                loaded.append(plugin_name)
+                print(f"[+] Successfully loaded plugin: {plugin_name}")
+            except Exception as e:
+                print(f"[-] Failed to load plugin {plugin_name}: {e}")
+    print(f"=== Total plugins loaded: {len(loaded)} ===")
+
+if __name__ == '__main__':
+    load_plugins()
+PYPLUGIN
+
+cat << 'PYEXAMPLE' > plugins/sample_extension.py
+def register():
+    print("[Plugin] Sample Executive Extension registered successfully.")
+PYEXAMPLE
+
+chmod +x plugin_loader.py
+python3 plugin_loader.py
+
+git add .
+if ! git diff --cached --quiet; then
+    git commit -m "Ecosystem update: Deployed modular plugin architecture and extension loader $(date '+%Y-%m-%d %H:%M:%S')"
+    git push origin main || true
+fi
+
+echo "=== Modular Plugin Architecture Fully Operational ==="
+EOF
+
+chmod +x workspace_plugin_loader.sh
+./workspace_plugin_loader.sh
