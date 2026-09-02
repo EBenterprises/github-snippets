@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+set -e
+
+REPO_DIR="${HOME}/github-snippets"
+mkdir -p "$REPO_DIR"
+
+EXT="${1:-txt}"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+FILENAME="snippet_${TIMESTAMP}.${EXT}"
+FILEPATH="${REPO_DIR}/${FILENAME}"
+
+if [ -t 0 ]; then
+    echo "[+] Reading from clipboard..."
+    if command -v termux-clipboard-get &>/dev/null; then
+        termux-clipboard-get > "$FILEPATH"
+    elif command -v wl-paste &>/dev/null; then
+        wl-paste > "$FILEPATH"
+    elif command -v xclip &>/dev/null; then
+        xclip -selection clipboard -o > "$FILEPATH"
+    elif command -v pbpaste &>/dev/null; then
+        pbpaste > "$FILEPATH"
+    else
+        echo "[-] Clipboard utility not found. Paste your code below, then press CTRL+D:"
+        cat > "$FILEPATH"
+    fi
+else
+    cat > "$FILEPATH"
+fi
+
+if [ ! -s "$FILEPATH" ]; then
+    echo "[-] Empty content. Aborting commit."
+    rm -f "$FILEPATH"
+    exit 1
+fi
+
+cd "$REPO_DIR"
+git add "$FILENAME"
+git commit -m "Auto-pasted code: ${FILENAME}"
+git push origin main
+echo "[✓] Pushed ${FILENAME} to GitHub successfully."
