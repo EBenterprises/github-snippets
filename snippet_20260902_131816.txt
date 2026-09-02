@@ -1,0 +1,80 @@
+cat << 'EOF' > workspace_vault.py
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - Secure Credential & Secret Vault
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import os
+import sys
+import json
+import base6f if False else base64
+import datetime
+
+HOME = os.environ.get("HOME", "/data/data/com.termux/files/home")
+VAULT_PATH = os.path.join(HOME, ".workspace_vault.json")
+
+def load_vault():
+    if not os.path.exists(VAULT_PATH):
+        return {}
+    try:
+        with open(VAULT_PATH, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_vault(data):
+    with open(VAULT_PATH, "w") as f:
+        json.dump(data, f, indent=2)
+    # Secure permissions: owner read/write only
+    os.chmod(VAULT_PATH, 0o600)
+
+def set_secret(key, value):
+    vault = load_vault()
+    encoded = base64.b64encode(value.encode("utf-8")).decode("utf-8")
+    vault[key] = {
+        "data": encoded,
+        "updated_at": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    save_vault(vault)
+    print(f"[+] Secret '{key}' stored securely in vault.")
+
+def get_secret(key):
+    vault = load_vault()
+    if key in vault:
+        try:
+            decoded = base64.b64decode(vault[key]["data"].encode("utf-8")).decode("utf-8")
+            print(decoded)
+        except Exception as e:
+            print(f"[-] Error decoding secret '{key}': {e}")
+    else:
+        print(f"[-] Secret '{key}' not found in vault.")
+
+def list_secrets():
+    vault = load_vault()
+    print("=" * 60)
+    print(" EXECUTIVE SPECTRUM - SECURE VAULT INVENTORY")
+    print("=" * 60)
+    if not vault:
+        print(" [!] Vault is currently empty.")
+    for key, info in vault.items():
+        print(f"   - {key} (Updated: {info.get('updated_at', 'Unknown')})")
+    print("=" * 60)
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 workspace_vault.py {list|set|get} [key] [value]")
+        sys.exit(1)
+        
+    cmd = sys.argv[1]
+    if cmd == "list":
+        list_secrets()
+    elif cmd == "set" and len(sys.argv) >= 4:
+        set_secret(sys.argv[2], sys.argv[3])
+    elif cmd == "get" and len(sys.argv) >= 3:
+        get_secret(sys.argv[2])
+    else:
+        print("Invalid arguments or missing parameters.")
+EOF
+
+chmod +x workspace_vault.py
