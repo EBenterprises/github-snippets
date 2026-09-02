@@ -1,0 +1,19 @@
+7c6f074f20 but expected df6756815f1c6c3b464fbcb088891c97fa710948
+~/termux_workspace $ git push origin main
+Enumerating objects: 8, done.
+Counting objects: 100% (8/8), done.
+Delta compression using up to 8 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (5/5), 1.45 KiB | 1.45 MiB/s, done.
+Total 5 (delta 3), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
+To github.com:EBenterprises/termux-workspace-backup.git
+ ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main': is at 63cb7732f4d78a9221dcc1ffbbd27d7c6f074f20 but expected df6756815f1c6c3b464fbcb088891c97fa710948)
+error: failed to push some refs to 'github.com:EBenterprises/termux-workspace-backup.git'
+~/termux_workspace $ git fetch origin
+~/termux_workspace $ git pull origin main --rebase
+error: cannot pull with rebase: You have unstaged changes.
+error: additionally, your index contains uncommitted changes.
+error: Please commit or stash them.
+~/termux_workspace $ git push origin main
+Everything up-to-date                                              ~/termux_workspace $
