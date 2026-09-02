@@ -1,0 +1,18 @@
+cat << 'EOF' > fix_web_ui.sh
+#!/usr/bin/env bash
+set -euo pipefail
+
+WORKSPACE_DIR="${HOME}/termux_workspace"
+WEB_UI_DIR="${WORKSPACE_DIR}/web_ui"
+SERVER_SCRIPT="${WEB_UI_DIR}/server.py"
+
+pkill -f "web_ui/server.py" || true
+
+cd "$WEB_UI_DIR"
+nohup python3 "$SERVER_SCRIPT" > "${WORKSPACE_DIR}/web_ui.log" 2>&1 &
+
+echo "Web UI restarted. Access it at http://127.0.0.1:8080 or http://localhost:8080"
+EOF
+
+chmod +x fix_web_ui.sh
+./fix_web_ui.sh
