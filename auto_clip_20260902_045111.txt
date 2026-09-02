@@ -1,0 +1,95 @@
+cat << 'EOF' > workspace_snippets.py
+#!/usr/init/env python3
+#!/usr/bin/env python3
+# ==============================================================================
+# Executive Spectrum - SQLite Snippet & Command Manager
+# EB Enterprises | Automated Terminal Environment
+# ==============================================================================
+
+import os
+import sys
+import sqlite3
+import datetime
+
+HOME = os.environ.get("HOME", "/data/data/com.termux/files/home")
+DB_PATH = os.path.join(HOME, ".workspace_snippets.db")
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS snippets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT UNIQUE NOT NULL,
+            code TEXT NOT NULL,
+            category TEXT,
+            created_at TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def add_snippet(title, code, category="general"):
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    try:
+        cursor.execute(
+            "INSERT OR REPLACE INTO snippets (title, code, category, created_at) VALUES (?, ?, ?, ?)",
+            (title, code, category, timestamp)
+        )
+        conn.commit()
+        print(f"[+] Snippet '{title}' saved successfully.")
+    except Exception as e:
+        print(f"[-] Error saving snippet: {e}")
+    finally:
+        conn.close()
+
+def list_snippets():
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, title, category, created_at FROM snippets")
+    rows = cursor.fetchall()
+    conn.close()
+    
+    print("=" * 60)
+    print(" STORED WORKSPACE SNIPPETS")
+    print("=" * 60)
+    for row in rows:
+        print(f" [{row[0]}] {row[1]} (Category: {row[2]}) - {row[3]}")
+    print("=" * 60)
+
+def get_snippet(title):
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT code FROM snippets WHERE title = ?", (title,))
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        print(row[0])
+    else:
+        print(f"[-] Snippet '{title}' not found.")
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python3 workspace_snippets.py {list|add|get} ...")
+        sys.exit(1)
+        
+    cmd = sys.argv[1]
+    if cmd == "list":
+        list_snippets()
+    elif cmd == "add" and len(sys.argv) >= 4:
+        add_snippet(sys.argv[2], sys.argv[3], sys.argv[4] if len(sys.argv) > 4 else "general")
+    elif cmd == "get" and len(sys.argv) >= 3:
+        get_snippet(sys.argv[2])
+    else:
+        print("Invalid arguments.")
+EOF
+
+chmod +x workspace_snippets.py
+git add workspace_snippets.py
+git commit -m "feat: implement sqlite snippet and command manager utility"
+git push origin main
