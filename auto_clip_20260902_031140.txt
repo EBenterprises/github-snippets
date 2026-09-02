@@ -1,0 +1,1 @@
+mkdir -p ~/new-sneaker-app/data ~/new-sneaker-app/public && cd ~/new-sneaker-app
