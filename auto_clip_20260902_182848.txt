@@ -1,0 +1,24 @@
+python3 -c '
+import json, os
+users_file = os.path.expanduser("~/termux_workspace/.vault/users.json")
+if os.path.exists(users_file):
+    with open(users_file, "r") as f:
+        users = json.load(f)
+else:
+    users = {}
+
+for u in users:
+    users[u] = "password123"
+
+os.makedirs(os.path.dirname(users_file), exist_ok=True)
+with open(users_file, "w") as f:
+    json.dump(users, f, indent=2)
+
+print("[+] All user passwords successfully updated to: password123")
+'
+
+rm -f .git/index.lock
+git add .vault/users.json
+git commit -m "chore: update all portal user credentials to password123"
+git pull --rebase origin main
+git push origin main
