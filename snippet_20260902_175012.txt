@@ -1,0 +1,5 @@
+rm -f .git/index.lock
+git status
+git pull --rebase origin main
+git push origin main
+python3 workspace_deployment_gateway.py
